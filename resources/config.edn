@@ -1,0 +1,83 @@
+{:service-name "kixi.search"
+ :logging {:level #profile {:default :info
+                            :prod :error} ; e/o #{:trace :debug :info :warn :error :fatal :report}
+           ;; Control log filtering by namespaces/patterns. Useful for turning off
+           ;; logging in noisy libraries, etc.:
+           ;;:ns-whitelist  ["whiner.*"] #_["my-app.foo-ns"]
+           :ns-blacklist ["org.eclipse.jetty"]
+           :kixi-comms-verbose-logging #profile {:default true
+                                                 :staging true
+                                                 :prod true}
+           :appender #profile {:default :println
+                               :staging :json
+                               :prod :json}}
+ :web #profile {:local {:port 8080
+                        :request-logging? true}
+                :staging-integration {:port 8080
+                                      :request-logging? true}
+                :staging-jenkins {:port 8080
+                                  :request-logging? true}
+                :staging {:port 18090
+                          :request-logging? true}
+                :prod {:port 18090
+                       :request-logging? true}}
+
+ :query #profile {:local {:host #or [#env ELASTICSEARCH "localhost"]
+                          :port 9200
+                          :native-port 9300}
+                  :jenkins {:discover "http://staging-masters.sandpit-vpc.kixi/service/elasticsearch/v1/tasks"
+                            :cluster "mesos-ha"}
+                  :staging {:discover "http://staging-masters.sandpit-vpc.kixi/service/elasticsearch/v1/tasks"
+                            :cluster "mesos-ha"}}
+
+ :communications #profile  {:local {:coreasync {:app "kixi.search"
+                                                :metrics-level :NONE}}
+                            :local-kinesis {:kinesis {:app "kixi.search"
+                                                      :endpoint "kinesis.eu-central-1.amazonaws.com"
+                                                      :region-name "eu-central-1"
+                                                      :dynamodb-endpoint #or [#env DYNAMODB "http://localhost:8000"]
+                                                      :streams {:event #or [#env EVENT_STREAM  "kixi-search-local-event"]
+                                                                :command #or [#env COMMAND_STREAM "kixi-search-local-command"]}
+                                                      :metrics-level :NONE
+                                                      :initial-lease-table-read-capacity 1
+                                                      :initial-lease-table-write-capacity 1
+                                                      :teardown-kinesis true
+                                                      :teardown-dynamodb true
+                                        ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 100]
+                                                      }}
+                            :staging-jenkins {:coreasync {:app "kixi.search"}}
+                            :staging {:kinesis {:app "kixi.search"
+                                                :endpoint "kinesis.eu-central-1.amazonaws.com"
+                                                :region-name "eu-central-1"
+                                                :dynamodb-endpoint "dynamodb.eu-central-1.amazonaws.com"
+                                                :initial-lease-table-read-capacity 1
+                                                :initial-lease-table-write-capacity 1
+                                                :streams {:event "staging-witan-event"
+                                                          :command "staging-witan-command"}
+                                        ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
+                                                :metrics-level :NONE
+                                                }}
+                            :staging-integration {:kinesis {:app "kixi.search-staging-test"
+                                                            :endpoint "kinesis.eu-central-1.amazonaws.com"
+                                                            :region-name "eu-central-1"
+                                                            :dynamodb-endpoint "dynamodb.eu-central-1.amazonaws.com"
+                                                            :initial-lease-table-read-capacity 1
+                                                            :initial-lease-table-write-capacity 1
+                                                            :streams {:event "staging-witan-event"
+                                                                      :command "staging-witan-command"}
+                                                            :teardown-dynamodb true
+                                                            :metrics-level :NONE
+                                        ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
+                                                            }}
+                            :prod {:kinesis {:app "kixi.search"
+                                             :endpoint "kinesis.eu-west-1.amazonaws.com"
+                                             :region-name "eu-west-1"
+                                             :dynamodb-endpoint "dynamodb.eu-west-1.amazonaws.com"
+                                             :initial-lease-table-read-capacity 2
+                                             :initial-lease-table-write-capacity 2
+                                             :streams {:event "prod-witan-event"
+                                                       :command "prod-witan-command"}
+                                             :metrics-level :NONE
+                                        ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
+                                             }}}
+ :repl {:port 5002}}

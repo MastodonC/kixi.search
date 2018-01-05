@@ -1,0 +1,40 @@
+{
+  "container": {
+    "type": "DOCKER",
+    "docker": {
+      "image": "OVERRIDDEN_BY_JENKINS",
+      "privileged": true,
+      "parameters": [
+         {"key": "env", "value": "ENVIRONMENT=prod"},
+         {"key": "env", "value": "JAVA_OPTS=-Xmx512M"},
+         {"key": "label", "value": "cluster=prod"},
+         {"key": "label", "value": "application=kixi.mailer"}
+      ],
+      "network": "BRIDGE",
+      "portMappings": [
+          {
+              "containerPort": 18090,
+              "hostPort": 18090,
+              "protocol": "tcp"
+          }
+      ]
+    }
+  },
+  "id": "OVERRIDDEN_BY_JENKINS",
+  "constraints": [["hostname", "UNIQUE"]],
+  "instances": 2,
+  "cpus": 0.2,
+  "mem": 1024,
+  "healthChecks": [{
+        "protocol": "HTTP",
+        "path": "/healthcheck",
+        "gracePeriodSeconds": 600,
+        "intervalSeconds": 30,
+        "portIndex": 0,
+        "timeoutSeconds": 10,
+        "maxConsecutiveFailures": 3
+  }],
+  "upgradeStrategy": {
+      "minimumHealthCapacity": 0.5
+  }
+}
