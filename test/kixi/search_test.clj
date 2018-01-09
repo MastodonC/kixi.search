@@ -29,8 +29,9 @@ Spike work")
                     ::user/id user
                     ::md/created (conformers/time-unparser (t/now))}
    ::md/size-bytes 10
-   ::md/sharing {::md/file-read (cons user next-users)
-                 ::md/meta-update (cons user next-users)}})
+   ::md/sharing {::md/file-read (into [] next-users)
+                 ::md/meta-update (into [] next-users)
+                 ::md/meta-read (into [] next-users)}})
 
 (defn dataset-events
   ([] (dataset-events (repeatedly users-num uuid)))

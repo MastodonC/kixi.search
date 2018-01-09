@@ -4,6 +4,7 @@
             [clojurewerkz.elastisch.native
              [document :as esd]
              [response :as esrsp]]
+            [clj-http.client :as client]
             [environ.core :refer [env]]
             [joplin.repl :as jrepl]
             [kixi.search.time :as t]
@@ -24,13 +25,14 @@
    (run! #(info "JOPLIN:" %))))
 
 (def string-stored-not_analyzed
-  {:type "string"
-   :store "yes"
-   :index "not_analyzed"})
+  {:type "keyword"
+   :store "true"
+   :index "true"})
 
 (def string-analyzed
-  {:type "string"
-   :store "yes"})
+  {:type "text"
+   :store "true"
+   :index "true"})
 
 (def timestamp
   {:type "date"
@@ -44,7 +46,7 @@
 
 (defn kw->es-format
   [kw]
-  (if (namespace kw)
+  (if (qualified-keyword? kw)
     (str (clojure.string/replace (namespace kw) "." "_")
          "__"
          (name kw))
@@ -72,8 +74,18 @@
       (keyword? m) (f m)
       :else m)))
 
+
+(defn remove-query-sub-ns
+  [k]
+  (if (qualified-keyword? k)
+    (keyword
+     (first (clojure.string/split (namespace k)
+                                  #".query"))
+     (name k))
+    k))
+
 (def all-keys->es-format
-  (map-all-keys kw->es-format))
+  (map-all-keys (comp kw->es-format remove-query-sub-ns)))
 
 (def all-keys->es-format-kws
   (map-all-keys (comp keyword kw->es-format)))
@@ -148,6 +160,12 @@
       (error "Unable to merge data for id: " id ". Trying to merge: " es-u ". Response: " r)
       r)))
 
+(defn insert-data
+  [index-name doc-type es-url id document]
+  (client/put (str es-url "/" index-name "/" doc-type "/" id)
+              {:body (json/generate-string (all-keys->es-format document))
+               :headers {:content-type "application/json"}}))
+
 
 (defn update-in-data
   [index-name doc-type conn id update-fn ks element]
@@ -202,17 +220,24 @@
     {}
     m)))
 
+(defn prn-t
+  [x]
+  (prn x)
+  x)
+
 (defn query->es-filter
   [query]
-  {:filter
-   {:bool
-    {:must
-     (map
-      (fn [[k values]]
-        {:terms {k values}})
-      (collapse-nesting
-       (all-keys->es-format
-        query)))}}})
+  (prn-t {:query
+          {:bool
+           (update query
+                   :filter
+                   #(reduce
+                     (fn [[k values]]
+                       {:terms {k values}})
+                     {}
+                     (collapse-nesting
+                      (all-keys->es-format
+                       %))))}}))
 
 (defn str->keyword
   [^String s]
@@ -226,23 +251,37 @@
        (mapv str->keyword)
        (clojure.string/join ".")))
 
+(defn search
+  [es-url index-name doc-type query]
+  (client/get
+   (str es-url "/" index-name "/" doc-type "/_search")
+   {:body (json/generate-string query)
+    :headers {:content-type "application/json"}}))
+
 (defn search-data
   [index-name doc-type conn query from-index cnt sort-by sort-order]
   (try
-    (let [resp (esd/search conn
-                           index-name
-                           doc-type
-                           (merge (query->es-filter query)
-                                  {:from from-index
-                                   :size cnt
-                                   :sort {(sort-by-vec->str sort-by)
-                                          {:order sort-order}}}))]
-      {:items (doall
-               (map (comp all-keys->kw :_source)
-                    (esrsp/hits-from resp)))
-       :paging {:total (esrsp/total-hits resp)
-                :count (count (esrsp/hits-from resp))
+    (let [resp (prn-t (json/parse-string
+                       (:body (search conn
+                                      index-name
+                                      doc-type
+                                      (merge (query->es-filter query)
+                                             {:from from-index
+                                              :size cnt
+                                              :sort {(sort-by-vec->str sort-by)
+                                                     {:order sort-order}}})))
+                       keyword))]
+      {:items (mapv (comp all-keys->kw :_source)
+                    (get-in resp [:hits :hits]))
+       :paging {:total (get-in resp [:hits :total])
+                :count (count (get-in resp [:hits :hits]))
                 :index from-index}})
     (catch Exception e
       (error e)
       (throw e))))
+
+(defn create-index
+  [es-url index-name definition]
+  (client/put (str es-url "/" index-name)
+              {:body (json/generate-string definition)
+               :headers {:content-type "application/json"}}))

@@ -23,31 +23,21 @@
    ::ms/sharing {:properties (zipmap ms/activities
                                      (repeat es/string-stored-not_analyzed))}})
 
-(def local-es
-  {:host "localhost"
-   :port 9200
-   :native-port 9300})
+(def local-es-url "http://localhost:9200")
 
 (defn create-index
-  [db]
-  (esi/create (client db)
-              index-name
-              {:mappings {doc-type
-                          {:properties (es/all-keys->es-format doc-def)}}
-               :settings {}}))
-
-(def merge-data
-  (partial es/merge-data index-name doc-type))
-
-(defn local-native-conn
-  []
-  (es/connect [[(:host local-es)
-                (:native-port local-es)]]
-              nil))
+  [es-url]
+  (es/create-index es-url
+                   index-name
+                   {:mappings {doc-type
+                               {:properties (es/all-keys->es-format doc-def)}}
+                    :settings {}}))
 
 (defn insert-metadata
-  [db metadata]
-  (merge-data
-   db
+  [es-url metadata]
+  (es/insert-data
+   index-name
+   doc-type
+   es-url
    (::ms/id metadata)
    metadata))
