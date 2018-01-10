@@ -8,7 +8,8 @@
             [environ.core :refer [env]]
             [joplin.repl :as jrepl]
             [kixi.search.time :as t]
-            [taoensso.timbre :as timbre :refer [error info]]))
+            [taoensso.timbre :as timbre :refer [error info]]
+            [com.rpl.specter :as specter]))
 
 (def put-opts (merge {:consistency (env :elasticsearch-consistency "default")
                       :replication (env :elasticsearch-replication "default")
@@ -212,7 +213,8 @@
   ([m prefix]
    (reduce
     (fn [a [k v]]
-      (if (map? v)
+      (if (and (map? v)
+               (every? map? (vals v)))
         (merge a
                (collapse-nesting v (str prefix k ".")))
         (assoc a (str prefix k)
@@ -225,19 +227,35 @@
   (prn x)
   x)
 
+(defn submaps-with
+  [nested-map k]
+  (into {}
+        (specter/select
+         [specter/ALL
+          (specter/selected? specter/LAST
+                             (specter/must k))]
+         nested-map)))
+
+(defn select-nested
+  [m k]
+  (as-> m $
+    (submaps-with $ k)
+    (specter/transform
+     [specter/MAP-VALS]
+     #(get % k) $)))
+
 (defn query->es-filter
-  [query]
-  (prn-t {:query
-          {:bool
-           (update query
-                   :filter
-                   #(reduce
-                     (fn [[k values]]
-                       {:terms {k values}})
-                     {}
-                     (collapse-nesting
-                      (all-keys->es-format
-                       %))))}}))
+  [{:keys [query] :as query-map}]
+  (let [flat-query (collapse-nesting
+                    (all-keys->es-format
+                     query))]
+    (prn "QM: " flat-query)
+    (prn-t {:query
+            {:bool
+             ;; TODO :contains here should be query.model.array/contains
+             {:filter {:terms (select-nested
+                               (submaps-with flat-query "contains")
+                               "contains")}}}})))
 
 (defn str->keyword
   [^String s]
@@ -259,13 +277,13 @@
     :headers {:content-type "application/json"}}))
 
 (defn search-data
-  [index-name doc-type conn query from-index cnt sort-by sort-order]
+  [index-name doc-type conn query-map from-index cnt sort-by sort-order]
   (try
     (let [resp (prn-t (json/parse-string
                        (:body (search conn
                                       index-name
                                       doc-type
-                                      (merge (query->es-filter query)
+                                      (merge (query->es-filter query-map)
                                              {:from from-index
                                               :size cnt
                                               :sort {(sort-by-vec->str sort-by)

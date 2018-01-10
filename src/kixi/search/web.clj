@@ -26,7 +26,9 @@
             [ring.util.request :refer [body-string]]
             [ring.middleware.json :refer [wrap-json-response]]
             [clojure.spec.alpha :as s]
-            [kixi.search.elasticsearch.query :as query]))
+            [kixi.search.elasticsearch.query :as query]
+            [kixi.search.query-model :as model]
+            [com.rpl.specter :as specter :refer [MAP-VALS]]))
 
 (defn healthcheck
   []
@@ -52,37 +54,6 @@
   (prn x)
   x)
 
-(def queryable-string string?)
-
-;; TODO generate these
-
-(alias 'ms 'kixi.datastore.metadatastore)
-(alias 'msq 'kixi.datastore.metadatastore.query)
-
-(spec/def ::msq/name string?)
-(spec/def ::msq/description string?)
-(spec/def ::meta-read list?)
-(spec/def ::msq/sharing
-  (spec/keys :opt-un [::meta-read]))
-
-(spec/def ::query
-  (spec/and (spec/keys :opt [::msq/name
-                             ::msq/description])
-            (spec/every-kv #{::msq/name
-                             ::msq/description}
-                           (constantly true))))
-
-(spec/def ::filter
-  (spec/and (spec/keys :opt [
-                             ::msq/sharing])
-            (spec/every-kv #{
-                             ::msq/sharing}
-                           (constantly true))))
-
-(spec/def ::query-map
-  (spec/or :nil nil?
-           :query (spec/keys :opts-un [::query ::filter])))
-
 (defn file-meta
   [query]
   (fn [& args]
@@ -95,26 +66,34 @@
       (keyword (first splits) (second splits))
       (keyword s))))
 
+(alias 'ms 'kixi.datastore.metadatastore)
+(alias 'msq 'kixi.datastore.metadatastore.query)
+
 (defn ensure-group-access
   [request-groups sharing-filter]
   (let [users-groups (set request-groups)]
     (as-> (or sharing-filter {}) $
-      (map-vals (comp vec (partial filter users-groups)) $)
-      (update $ ::ms/meta-read
-              #(or % (vec users-groups))))))
+      (specter/transform
+       [MAP-VALS MAP-VALS]
+       (partial filter users-groups)
+       $)
+      (update-in $
+                 [::msq/meta-read :contains]
+                 #(or % (vec users-groups))))))
 
 (defn metadata-query
   [query]
   (fn [request]
     (let [query-raw (json/parse-string (body-string request)
                                        namespaced-keyword)
-          conformed-query (spec/conform ::query-map
+          conformed-query (spec/conform ::model/query-map
                                         query-raw)]
+      ;;TODO user-groups header must be present
       (if-not (= ::spec/invalid conformed-query)
         (prn-t (response
                 (query/find-by-query query
-                                     (update-in (spec/unform ::query-map conformed-query)
-                                                [:filter ::msq/sharing]
+                                     (update-in (spec/unform ::model/query-map conformed-query)
+                                                [:query ::msq/sharing]
                                                 (partial ensure-group-access (request->user-groups request)))
                                      0 ;;from-index
                                      10 ;;cnt

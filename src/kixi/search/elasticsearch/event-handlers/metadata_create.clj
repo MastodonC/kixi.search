@@ -16,6 +16,7 @@
    ::ms/type es/string-stored-not_analyzed
    ::ms/name es/string-analyzed
    ::ms/description es/string-analyzed
+   ::ms/tags es/string-analyzed
    ::ms/provenance {:properties {::ms/source es/string-stored-not_analyzed
                                  :kixi.user/id es/string-stored-not_analyzed
                                  ::ms/parent-id es/string-stored-not_analyzed
