@@ -84,15 +84,18 @@
 (defn metadata-query
   [query]
   (fn [request]
-    (let [query-raw (json/parse-string (body-string request)
-                                       namespaced-keyword)
+    (let [query-raw (update (json/parse-string (body-string request)
+                                               namespaced-keyword)
+                            :fields
+                            (partial mapv namespaced-keyword))
           conformed-query (spec/conform ::model/query-map
                                         query-raw)]
       ;;TODO user-groups header must be present
+      (prn "CQ: " conformed-query)
       (if-not (= ::spec/invalid conformed-query)
         (prn-t (response
                 (query/find-by-query query
-                                     (update-in (spec/unform ::model/query-map conformed-query)
+                                     (update-in (or (:query (apply hash-map conformed-query)) {})
                                                 [:query ::msq/sharing]
                                                 (partial ensure-group-access (request->user-groups request)))
                                      0 ;;from-index
@@ -101,8 +104,7 @@
                                      :asc ;;sort-order
                                      )))
         {:status 400
-         :body (do (spec/explain ::query-map query-raw)
-                   (spec/explain-data ::query-map query-raw))}))))
+         :body (spec/explain-data ::model/query-map query-raw)}))))
 
 (defn routes
   "Create the URI route structure for our application."

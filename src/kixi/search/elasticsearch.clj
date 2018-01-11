@@ -35,6 +35,12 @@
    :store "true"
    :index "true"})
 
+(def string-autocomplete
+  {:type "text"
+   :store "true"
+   :index "true"
+   :analyzer "autocomplete"})
+
 (def timestamp
   {:type "date"
    :format t/es-format})
@@ -242,20 +248,26 @@
     (submaps-with $ k)
     (specter/transform
      [specter/MAP-VALS]
-     #(get % k) $)))
+     #(get % k) $)
+    (when-not (empty? $) $)))
 
 (defn query->es-filter
-  [{:keys [query] :as query-map}]
+  [{:keys [query fields] :as query-map}]
   (let [flat-query (collapse-nesting
                     (all-keys->es-format
                      query))]
     (prn "QM: " flat-query)
-    (prn-t {:query
-            {:bool
-             ;; TODO :contains here should be query.model.array/contains
-             {:filter {:terms (select-nested
-                               (submaps-with flat-query "contains")
-                               "contains")}}}})))
+    (prn-t (merge {:query
+                   {:bool
+                    (merge {:filter {:terms (select-nested
+                                             flat-query
+                                             "contains")}}
+                           (when-let [matchers (select-nested
+                                                flat-query
+                                                "match")]
+                             {:must {:match matchers}}))}}
+                  (when-not (empty? fields)
+                    {:stored_fields (mapv kw->es-format fields)})))))
 
 (defn str->keyword
   [^String s]
@@ -289,7 +301,7 @@
                                               :sort {(sort-by-vec->str sort-by)
                                                      {:order sort-order}}})))
                        keyword))]
-      {:items (mapv (comp all-keys->kw :_source)
+      {:items (mapv (comp all-keys->kw (some-fn :_source :fields))
                     (get-in resp [:hits :hits]))
        :paging {:total (get-in resp [:hits :total])
                 :count (count (get-in resp [:hits :hits]))

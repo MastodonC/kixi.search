@@ -14,9 +14,9 @@
 (def doc-def
   {::ms/id es/string-stored-not_analyzed
    ::ms/type es/string-stored-not_analyzed
-   ::ms/name es/string-analyzed
+   ::ms/name es/string-autocomplete
    ::ms/description es/string-analyzed
-   ::ms/tags es/string-analyzed
+   ::ms/tags es/string-autocomplete
    ::ms/provenance {:properties {::ms/source es/string-stored-not_analyzed
                                  :kixi.user/id es/string-stored-not_analyzed
                                  ::ms/parent-id es/string-stored-not_analyzed
@@ -32,7 +32,16 @@
                    index-name
                    {:mappings {doc-type
                                {:properties (es/all-keys->es-format doc-def)}}
-                    :settings {}}))
+                    :settings {:number_of_shards 1 ;; See https://www.elastic.co/guide/en/elasticsearch/guide/master/relevance-is-broken.html
+                               :analysis {:filter {:autocomplete_filter
+                                                   {:type "edge_ngram"
+                                                    :min_gram 1 ;; Might want this to be 2
+                                                    :max_gram 20}}
+                                          :analyzer {:autocomplete
+                                                     {:type "custom"
+                                                      :tokenizer "standard"
+                                                      :filter ["lowercase"
+                                                               "autocomplete_filter"]}}}}}))
 
 (defn insert-metadata
   [es-url metadata]

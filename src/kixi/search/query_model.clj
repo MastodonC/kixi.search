@@ -6,15 +6,14 @@
 
 (alias 'ms 'kixi.datastore.metadatastore)
 (alias 'msq 'kixi.datastore.metadatastore.query)
-(alias 'array 'kixi.search.query-model.list)
-(alias 'string 'kixi.search.query-model.string)
 
-(s/def ::array/contains list?)
-(s/def ::string/contains string?)
+(s/def ::contains vector?)
+(s/def ::match string?)
 
 (def queryable-string string?)
 
-(s/def ::msq/name string?)
+(s/def ::msq/name
+  (s/keys :opt-un [::match]))
 (s/def ::msq/description string?)
 
 (s/def ::msq/meta-read
@@ -34,6 +33,11 @@
                        ::msq/sharing}
                      (constantly true))))
 
+;; A small set of selectable fields, use when using auto complete searches
+(s/def ::fields
+  (s/every #{::ms/name}
+           :kind vector?))
+
 (s/def ::query-map
   (s/or :nil nil?
-        :query (s/keys :opt-un [::query])))
+        :query (s/keys :opt-un [::query ::fields])))
