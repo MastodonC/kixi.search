@@ -17,18 +17,18 @@
                                       :request-logging? true}
                 :staging-jenkins {:port 8080
                                   :request-logging? true}
-                :staging {:port 18090
+                :staging {:port 18091
                           :request-logging? true}
-                :prod {:port 18090
+                :prod {:port 18091
                        :request-logging? true}}
 
  :query #profile {:local {:host #or [#env ELASTICSEARCH "localhost"]
-                          :port 9200
-                          :native-port 9300}
+                          :port 9200}
                   :jenkins {:discover "http://staging-masters.sandpit-vpc.kixi/service/elasticsearch/v1/tasks"
                             :cluster "mesos-ha"}
-                  :staging {:discover "http://staging-masters.sandpit-vpc.kixi/service/elasticsearch/v1/tasks"
-                            :cluster "mesos-ha"}}
+                  :staging {:host "https://vpc-stating-elastic-search-b6dxxwfzlxrnjnge7hotniuy2m.eu-central-1.es.amazonaws.com"
+                            :port 9200}
+                  }
 
  :communications #profile  {:local {:coreasync {:app "kixi.search"
                                                 :metrics-level :NONE}}

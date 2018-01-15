@@ -13,7 +13,8 @@
             [kixi.comms.components
              [kinesis :as kinesis]
              [coreasync :as coreasync]]
-            [taoensso.timbre :as log]))
+            [taoensso.timbre :as log]
+            [medley.core :as med]))
 
 
 (defn config
@@ -49,10 +50,13 @@
   system starting). This is a pattern described in
   https://juxt.pro/blog/posts/aero.html"
   [system config profile]
-  (merge-with merge
-              system
-              (-> config
-                  (raise-first :communications))))
+  (->> (merge-with merge
+                   system
+                   (-> config
+                       (raise-first :communications)))
+       (med/map-vals #(if (map? %)
+                        (assoc % :profile (name profile))
+                        %))))
 
 (defn configure-logging
   [config]
