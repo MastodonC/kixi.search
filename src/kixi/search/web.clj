@@ -2,11 +2,13 @@
   (:require [byte-streams :as bs]
             [clojure.edn :as edn]
             [cheshire.core :as json]
+            [clojure.spec.alpha :as spec]
             [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
             [com.walmartlabs.lacinia :refer [execute]]
             [com.walmartlabs.lacinia.schema :as schema]
             [bidi
              [bidi :refer [tag]]
+             [ring :refer [make-handler]]
              [vhosts :refer [vhosts-model]]]
             [com.stuartsierra.component :as component]
             [kixi.search.graphql :refer [namespaced-map->graphql-map
@@ -15,19 +17,24 @@
                                          keyword->graphql-keyword
                                          assoc-in-queries]]
             [kixi.search.elasticsearch.query :as es]
+            [kixi.spec :refer [alias]]
             [taoensso.timbre :as timbre :refer [error info infof]]
-            [yada
-             [resource :as yr]
-             [yada :as yada]]
-            [clojure.java.io :as io]))
-
+            [medley.core :refer [map-vals]]
+            [clojure.java.io :as io]
+            [ring.adapter.jetty :refer [run-jetty]]
+            [ring.util.response :refer [not-found response status]]
+            [ring.util.request :refer [body-string]]
+            [ring.middleware.json :refer [wrap-json-response]]
+            [clojure.spec.alpha :as s]
+            [kixi.search.elasticsearch.query :as query]
+            [kixi.search.query-model :as model]
+            [com.rpl.specter :as specter :refer [MAP-VALS]]))
 
 (defn healthcheck
-  [ctx]
-                                        ;Return truthy for now, but later check dependancies
-  (assoc (:response ctx)
-         :status 200
-         :body "All is well"))
+  []
+  ;;Return truthy for now, but later check dependancies
+  (response
+   {:body "All is well"}))
 
 (defn vec-if-not
   [x]
@@ -36,9 +43,9 @@
     x
     (vector x)))
 
-(defn ctx->user-groups
-  [ctx]
-  (some-> (get-in ctx [:request :headers "user-groups"])
+(defn request->user-groups
+  [request]
+  (some-> (get-in request [:headers "user-groups"])
           (clojure.string/split #",")
           vec-if-not))
 
@@ -47,72 +54,91 @@
   (prn x)
   x)
 
-(defn graphql
-  [schema ctx]
-  {:status 200
-   :headers {"Content-Type" "application/json"}
-   :body (let [body-stream (get-in ctx [:body])
-               groups (ctx->user-groups ctx)
-               result (execute schema
-                               (bs/to-string body-stream)
-                               nil
-                               {:groups groups})]
-           (json/generate-string result))})
+(defn file-meta
+  [query]
+  (fn [& args]
+    (prn args)))
+
+(defn namespaced-keyword
+  [s]
+  (let [splits (clojure.string/split s #"/")]
+    (if (second splits)
+      (keyword (first splits) (second splits))
+      (keyword s))))
+
+(alias 'ms 'kixi.datastore.metadatastore)
+(alias 'msq 'kixi.datastore.metadatastore.query)
+
+(defn ensure-group-access
+  [request-groups sharing-filter]
+  (let [users-groups (set request-groups)]
+    (as-> (or sharing-filter {}) $
+      (specter/transform
+       [MAP-VALS MAP-VALS]
+       (partial filter users-groups)
+       $)
+      (update-in $
+                 [::msq/meta-read :contains]
+                 #(or % (vec users-groups))))))
+
+(defn metadata-query
+  [query]
+  (fn [request]
+    (let [query-raw (update (json/parse-string (body-string request)
+                                               namespaced-keyword)
+                            :fields
+                            (partial mapv namespaced-keyword))
+          conformed-query (spec/conform ::model/query-map
+                                        query-raw)]
+      ;;TODO user-groups header must be present
+      (prn "CQ: " conformed-query)
+      (if-not (= ::spec/invalid conformed-query)
+        (prn-t (response
+                (query/find-by-query query
+                                     (update-in (or (:query (apply hash-map conformed-query)) {})
+                                                [:query ::msq/sharing]
+                                                (partial ensure-group-access (request->user-groups request)))
+                                     0 ;;from-index
+                                     10 ;;cnt
+                                     ["kixi.datastore.metadatastore/id"] ;;sort-by
+                                     :asc ;;sort-order
+                                     )))
+        {:status 400
+         :body (spec/explain-data ::model/query-map query-raw)}))))
 
 (defn routes
   "Create the URI route structure for our application."
-  [schema]
+  [query]
   [""
    [["/healthcheck" healthcheck]
-    ["/graphql" (partial graphql schema)]
+    ["/metadata" {:get [[["/" :id] (file-meta query)]]
+                  ;; TODO add content-type guard
+                  :post [[[""] (metadata-query query)]]}]
 
-    ;; This is a backstop. Always produce a 404 if we get there. This
-    ;; ensures we never pass nil back to Aleph.
-    [true (yada/handler nil)]]])
-
-(defn wrap-resolver
-  [f]
-  (fn [context arguments value]
-    (let [args (graphql-map->namespaced-map arguments)
-          results (f context args value)]
-      (map namespaced-map->graphql-map
-           results))))
-
-(defn get-sharing-matrix
-  [context arguments value]
-  (let [activity (graphql-keyword->keyword (get-in context [:com.walmartlabs.lacinia/selection :field]))]
-    (prn value)
-    (get value
-         (prn-t
-          (keyword (str "kixi_datastore_metadatastore___" (name (keyword->graphql-keyword activity))))))))
-
-(defn compile-schema
-  [query]
-  (-> "schema.edn"
-      io/resource
-      io/file
-      slurp
-      edn/read-string
-      namespaced-map->graphql-map
-      prn-t
-      (attach-resolvers {:get-metadata (wrap-resolver
-                                        (fn [context args value]
-                                          [(es/find-by-id query (:kixi.datastore.metadatastore/id args))]))
-                         :get-sharing-matrix get-sharing-matrix})
-      schema/compile))
+    [true (constantly (not-found nil))]]])
 
 (defrecord Web
-    [port listener query]
+    [port ^org.eclipse.jetty.server.Server jetty query]
   component/Lifecycle
   (start [component]
-    (if listener
-      component
-      (let [_ (infof "Starting web-server on port %s" port)
-            listener (yada/listener (routes (compile-schema query))
-                                    {:port port})]
-        (assoc component :listener listener))))
+    (if-not jetty
+      (do
+        (infof "Starting web-server on port %s" port)
+        (assoc component
+               :jetty
+               (run-jetty
+                ;; TODO Add json middleware
+                (->> query
+                     routes
+                     make-handler
+                     wrap-json-response)
+                {:port port
+                 :join? false})))
+      component))
   (stop [component]
-    (when-let [close (get-in component [:listener :close])]
-      (infof "Stopping web-server on port %s" port)
-      (close))
-    (assoc component :listener nil)))
+    (if jetty
+      (do
+        (infof "Stopping web-server on port")
+        (.stop jetty)
+        (dissoc component :jetty))
+      component)))

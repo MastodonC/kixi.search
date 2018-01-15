@@ -10,6 +10,7 @@
                  [clojurewerkz/elastisch "3.0.0"]
                  [cider/cider-nrepl "0.15.1"]
                  [cheshire "5.6.3"]
+                 [clj-http "3.7.0"]
                  [com.amazonaws/aws-java-sdk "1.11.53" :exclusions [joda-time]]
                  [com.gfredericks/test.chuck "0.2.8"]
                  [com.taoensso/timbre "4.8.0"]
@@ -21,10 +22,13 @@
                  [kixi/kixi.spec "0.1.13"]
                  [joplin.core "0.3.9"]
                  [joplin.elasticsearch "0.3.9"]
+                 [medley "1.0.0"]
                  [org.clojure/clojure "1.9.0-alpha17"]
                  [org.clojure/tools.nrepl "0.2.12"]
                  [com.rpl/specter "1.0.5"]
-                 [yada/lean "1.2.2"]]
+                 [ring/ring-core "1.6.3"]
+                 [ring/ring-jetty-adapter "1.6.3"]
+                 [ring/ring-json "0.4.0"]]
   :repl-options {:init-ns user}
   :global-vars {*warn-on-reflection* true
                 *assert* false}
