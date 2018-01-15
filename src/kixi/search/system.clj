@@ -16,7 +16,6 @@
             [taoensso.timbre :as log]
             [medley.core :as med]))
 
-
 (defn config
   "Read EDN config, with the given profile. See Aero docs at
   https://github.com/juxt/aero for details."
@@ -50,13 +49,13 @@
   system starting). This is a pattern described in
   https://juxt.pro/blog/posts/aero.html"
   [system config profile]
-  (->> (merge-with merge
-                   system
-                   (-> config
-                       (raise-first :communications)))
-       (med/map-vals #(if (map? %)
-                        (assoc % :profile (name profile))
-                        %))))
+  (merge-with merge
+              system
+              (->> (-> config
+                       (raise-first :communications))
+                   (med/map-vals #(if (map? %)
+                                    (assoc % :profile (name profile))
+                                    %)))))
 
 (defn configure-logging
   [config]
