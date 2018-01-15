@@ -13,8 +13,13 @@
             "network": "BRIDGE",
             "portMappings": [
                 {
-                    "containerPort": 18090,
-                    "hostPort": 18090,
+                    "containerPort": 18091,
+                    "hostPort": 18091,
+                    "protocol": "tcp"
+                },
+                {
+                    "containerPort": 5001,
+                    "hostPort": 10012,
                     "protocol": "tcp"
                 }
             ]

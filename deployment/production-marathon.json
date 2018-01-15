@@ -8,13 +8,13 @@
          {"key": "env", "value": "ENVIRONMENT=prod"},
          {"key": "env", "value": "JAVA_OPTS=-Xmx512M"},
          {"key": "label", "value": "cluster=prod"},
-         {"key": "label", "value": "application=kixi.mailer"}
+         {"key": "label", "value": "application=kixi.search"}
       ],
       "network": "BRIDGE",
       "portMappings": [
           {
-              "containerPort": 18090,
-              "hostPort": 18090,
+              "containerPort": 18091,
+              "hostPort": 18091,
               "protocol": "tcp"
           }
       ]
