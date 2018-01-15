@@ -21,7 +21,7 @@
                                  :kixi.user/id es/string-stored-not_analyzed
                                  ::md/parent-id es/string-stored-not_analyzed
                                  ::md/created es/timestamp}}
-   ::md/sharing {:properties (zipmap ms/activities
+   ::md/sharing {:properties (zipmap md/activities
                                      (repeat es/string-stored-not_analyzed))}})
 
 (def local-es-url "http://localhost:9200")
