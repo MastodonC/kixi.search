@@ -31,7 +31,7 @@
             [com.rpl.specter :as specter :refer [MAP-VALS]]))
 
 (defn healthcheck
-  []
+  [_]
   ;;Return truthy for now, but later check dependancies
   (response
    {:body "All is well"}))
