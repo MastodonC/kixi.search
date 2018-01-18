@@ -28,7 +28,7 @@
                 :prod {:port 18091
                        :request-logging? true}}
 
- :query ^ref [:es]
+ :query ^:ref [:es]
 
  :communications #profile  {:local {:coreasync {:app "kixi.search"
                                                 :metrics-level :NONE}}
