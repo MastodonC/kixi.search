@@ -3,9 +3,9 @@
             [kixi.comms :as c]
             [kixi.search.elasticsearch :as es]
             [kixi.spec :refer [alias]]
-            [taoensso.timbre :as timbre :refer [info]]))
+            [taoensso.timbre :as timbre :refer [info]]
+            [kixi.datastore.metadatastore :as md]))
 
-(alias 'md 'kixi.datastore.metadatastore)
 (alias 'cs 'kixi.datastore.communication-specs)
 
 (def index-name "kixi-datastore_file-metadata")
