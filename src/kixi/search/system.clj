@@ -10,6 +10,7 @@
             [kixi.search.web :as w]
             [kixi.search.repl :as repl]
             [kixi.search.elasticsearch.query :as query]
+            [kixi.search.elasticsearch.event-handlers.metadata-create :as metadata-create]
             [kixi.comms.components
              [kinesis :as kinesis]
              [coreasync :as coreasync]]
@@ -26,6 +27,7 @@
   {:communications []
    :repl []
    :query []
+   :metadata-create [:communications]
    :web [:query]})
 
 (defn new-system-map
@@ -35,6 +37,7 @@
                      :kinesis (kinesis/map->Kinesis {})
                      :coreasync (coreasync/map->CoreAsync {}))
    :query (query/map->ElasticSearch {})
+   :metadata-create (metadata-create/map->MetadataCreate {})
    :repl (repl/map->ReplServer {})
    :web (w/map->Web {})))
 

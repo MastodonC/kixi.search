@@ -86,7 +86,7 @@
   [connection]
   (str (:protocol connection) "://" (:host connection) ":" (:port connection 9200)) )
 
-(defrecord MetadataUpdate
+(defrecord MetadataCreate
     [communications protocol host port es-url started]
   component/Lifecycle
   (start [component]
