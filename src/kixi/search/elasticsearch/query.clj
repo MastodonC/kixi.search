@@ -37,7 +37,7 @@
 (def doc-type "file-metadata")
 
 (defrecord ElasticSearch
-    [communications host port native-port cluster discover migrators-dir es-url]
+    [communications protocol host port native-port cluster discover migrators-dir es-url]
 
   Query
   (find-by-id-
@@ -68,7 +68,7 @@
         ;;joplin ES is using elastisch 2.x via native, not going to work
         ;;(es/migrate :env joplin-conf)
         (assoc component :es-url
-               (str "http://" host ":" port)))
+               (str protocol "://" host ":" port)))
       component))
   (stop [component]
     (if es-url

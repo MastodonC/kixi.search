@@ -57,7 +57,7 @@
 (defmethod update-metadata-processor ::cs/file-metadata-structural-validation-checked
   [conn update-event]
   (info "Update: " update-event)
-)
+  )
 
 (defmethod update-metadata-processor ::cs/file-metadata-sharing-updated
   [conn update-event]
@@ -84,14 +84,14 @@
 
 (defn connection->es-url
   [connection]
-  (str "http://" (:host connection) ":" (:port connection 9200)))
+  (str (:protocol connection) "://" (:host connection) ":" (:port connection 9200)) )
 
 (defrecord MetadataUpdate
-    [communications connection es-url started]
+    [communications protocol host port es-url started]
   component/Lifecycle
   (start [component]
     (if-not started
-      (let [es-url (connection->es-url connection)]
+      (let [es-url   (str protocol "://" host ":" port)]
         (c/attach-event-handler! communications
                                  :kixi.search/metadata-update
                                  :kixi.datastore.file-metadata/updated

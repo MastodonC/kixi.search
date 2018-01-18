@@ -1,4 +1,10 @@
 {:service-name "kixi.search"
+ :es #profile {:local {:protocol "http"
+                       :host #or [#env ELASTICSEARCH "localhost"]
+                       :port 9200}
+               :staging {:protocol "https"
+                         :host "vpc-staging-kixi-search-lg6tvmynyrm2ckwwfnntomrxs4.eu-central-1.es.amazonaws.com"
+                         :port 443}}
  :logging {:level #profile {:default :info
                             :prod :error} ; e/o #{:trace :debug :info :warn :error :fatal :report}
            ;; Control log filtering by namespaces/patterns. Useful for turning off
@@ -22,13 +28,7 @@
                 :prod {:port 18091
                        :request-logging? true}}
 
- :query #profile {:local {:host #or [#env ELASTICSEARCH "localhost"]
-                          :port 9200}
-                  :jenkins {:discover "http://staging-masters.sandpit-vpc.kixi/service/elasticsearch/v1/tasks"
-                            :cluster "mesos-ha"}
-                  :staging {:host "https://vpc-stating-elastic-search-b6dxxwfzlxrnjnge7hotniuy2m.eu-central-1.es.amazonaws.com"
-                            :port 9200}
-                  }
+ :query ^ref [:es]
 
  :communications #profile  {:local {:coreasync {:app "kixi.search"
                                                 :metrics-level :NONE}}
