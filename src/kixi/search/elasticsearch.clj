@@ -267,7 +267,7 @@
                                                 "match")]
                              {:must {:match matchers}}))}}
                   (when-not (empty? fields)
-                    {:stored_fields (mapv kw->es-format fields)})))))
+                    {:_source (mapv kw->es-format fields)})))))
 
 (defn str->keyword
   [^String s]
@@ -310,8 +310,32 @@
       (error e)
       (throw e))))
 
-(defn create-index
+(defn index-exists?
+  [es-url index-name]
+  (->> (str es-url "/" index-name)
+       client/head
+       :status
+       (= 200)))
+
+(defn create-index-
   [es-url index-name definition]
   (client/put (str es-url "/" index-name)
               {:body (json/generate-string definition)
                :headers {:content-type "application/json"}}))
+
+(defn create-index
+  [es-url index-name doc-type definition]
+  (create-index- es-url
+                 index-name
+                 {:mappings {doc-type
+                             {:properties (all-keys->es-format definition)}}
+                  :settings {:number_of_shards 1 ;; See https://www.elastic.co/guide/en/elasticsearch/guide/master/relevance-is-broken.html
+                             :analysis {:filter {:autocomplete_filter
+                                                 {:type "edge_ngram"
+                                                  :min_gram 1 ;; Might want this to be 2
+                                                  :max_gram 20}}
+                                        :analyzer {:autocomplete
+                                                   {:type "custom"
+                                                    :tokenizer "standard"
+                                                    :filter ["lowercase"
+                                                             "autocomplete_filter"]}}}}}))

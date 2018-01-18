@@ -91,18 +91,17 @@
           conformed-query (spec/conform ::model/query-map
                                         query-raw)]
       ;;TODO user-groups header must be present
-      (prn "CQ: " conformed-query)
       (if-not (= ::spec/invalid conformed-query)
-        (prn-t (response
-                (query/find-by-query query
-                                     (update-in (or (:query (apply hash-map conformed-query)) {})
-                                                [:query ::msq/sharing]
-                                                (partial ensure-group-access (request->user-groups request)))
-                                     0 ;;from-index
-                                     10 ;;cnt
-                                     ["kixi.datastore.metadatastore/id"] ;;sort-by
-                                     :asc ;;sort-order
-                                     )))
+        (response
+         (query/find-by-query query
+                              (update-in (or (:query (apply hash-map conformed-query)) {})
+                                         [:query ::msq/sharing]
+                                         (partial ensure-group-access (request->user-groups request)))
+                              0  ;;from-index
+                              10 ;;cnt
+                              ["kixi.datastore.metadatastore/id"] ;;sort-by
+                              :asc ;;sort-order
+                              ))
         {:status 400
          :body (spec/explain-data ::model/query-map query-raw)}))))
 

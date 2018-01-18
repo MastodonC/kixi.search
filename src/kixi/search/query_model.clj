@@ -98,7 +98,7 @@ Creates:
 
 ;; A small set of selectable fields, use when using auto complete searches
 (s/def ::fields
-  (s/every #{::ms/name}
+  (s/every #{::ms/name ::ms/id}
            :kind vector?))
 
 (s/def ::query-map
