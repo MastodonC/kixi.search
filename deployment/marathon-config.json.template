@@ -18,8 +18,8 @@
                     "protocol": "tcp"
                 },
                 {
-                    "containerPort": 5001,
-                    "hostPort": 10012,
+                    "containerPort": 5002,
+                    "hostPort": 10013,
                     "protocol": "tcp"
                 }
             ]
