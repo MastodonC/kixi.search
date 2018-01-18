@@ -30,6 +30,8 @@
 
  :query ^:ref [:es]
 
+ :metadata-create ^:ref [:es]
+
  :communications #profile  {:local {:coreasync {:app "kixi.search"
                                                 :metrics-level :NONE}}
                             :local-kinesis {:kinesis {:app "kixi.search"
