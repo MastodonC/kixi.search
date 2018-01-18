@@ -11,11 +11,11 @@
            :appender #profile {:default :println
                                :staging :json
                                :prod :json}}
- :web #profile {:local {:port 8080
+ :web #profile {:local {:port 8091
                         :request-logging? true}
-                :staging-integration {:port 8080
+                :staging-integration {:port 8091
                                       :request-logging? true}
-                :staging-jenkins {:port 8080
+                :staging-jenkins {:port 8091
                                   :request-logging? true}
                 :staging {:port 18091
                           :request-logging? true}

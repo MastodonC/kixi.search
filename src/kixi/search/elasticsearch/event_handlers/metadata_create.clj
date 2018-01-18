@@ -11,6 +11,7 @@
 (def index-name "kixi-datastore_file-metadata")
 (def doc-type "file-metadata")
 
+;;TODO Move this into some Joplin like thing
 (def doc-def
   {::md/id es/string-stored-not_analyzed
    ::md/type es/string-stored-not_analyzed
@@ -26,22 +27,6 @@
 
 (def local-es-url "http://localhost:9200")
 
-(defn create-index
-  [es-url]
-  (es/create-index es-url
-                   index-name
-                   {:mappings {doc-type
-                               {:properties (es/all-keys->es-format doc-def)}}
-                    :settings {:number_of_shards 1 ;; See https://www.elastic.co/guide/en/elasticsearch/guide/master/relevance-is-broken.html
-                               :analysis {:filter {:autocomplete_filter
-                                                   {:type "edge_ngram"
-                                                    :min_gram 1 ;; Might want this to be 2
-                                                    :max_gram 20}}
-                                          :analyzer {:autocomplete
-                                                     {:type "custom"
-                                                      :tokenizer "standard"
-                                                      :filter ["lowercase"
-                                                               "autocomplete_filter"]}}}}}))
 
 (defn insert-metadata
   [es-url metadata]

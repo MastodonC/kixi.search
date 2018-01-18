@@ -24,7 +24,7 @@ Spike work")
   {::md/type "stored"
    ::md/file-type "csv"
    ::md/id (uuid)
-   ::md/name (str "Test File " file-index "for " uuid)
+   ::md/name (str "Test File " file-index "for " user)
    ::md/provenance {::md/source "upload"
                     ::user/id user
                     ::md/created (conformers/time-unparser (t/now))}
