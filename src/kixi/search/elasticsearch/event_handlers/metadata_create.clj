@@ -15,6 +15,7 @@
 (def doc-def
   {::md/id es/string-stored-not_analyzed
    ::md/type es/string-stored-not_analyzed
+   ::md/file-type es/string-stored-not_analyzed
    ::md/name es/string-autocomplete
    ::md/description es/string-analyzed
    ::md/tags es/string-autocomplete
@@ -23,7 +24,8 @@
                                  ::md/parent-id es/string-stored-not_analyzed
                                  ::md/created es/timestamp}}
    ::md/sharing {:properties (zipmap md/activities
-                                     (repeat es/string-stored-not_analyzed))}})
+                                     (repeat es/string-stored-not_analyzed))}
+   ::md/size-bytes es/long})
 
 (def local-es-url "http://localhost:9200")
 

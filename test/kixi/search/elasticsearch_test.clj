@@ -36,3 +36,12 @@
                                   {:name {:match "x"}
                                    :sharing
                                    {:meta-read {:contains ["123"]}}}})))))
+
+(deftest sorting-constructs
+  (is (= [{"provenance.created" "desc"}
+          {:name "asc"}
+          {"provenance.created" "asc"}]
+         (mapv sut/sort-by->collapsed-es-sorts
+               [{:provenance {:created :desc}}
+                :name
+                {:provenance :created}]))) )

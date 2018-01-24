@@ -8,23 +8,6 @@
 (alias 'ms 'kixi.datastore.metadatastore)
 (alias 'msq 'kixi.datastore.metadatastore.query)
 
-(s/def ::contains vector?)
-(s/def ::match string?)
-
-(def queryable-string string?)
-
-(s/def ::msq/name
-  (s/keys :opt-un [::match]))
-(s/def ::msq/description string?)
-
-(s/def ::msq/meta-read
-  (s/keys :opt-un [::contains]))
-
-(s/def ::msq/sharing
-  (s/keys :opt-un [::msq/meta-read]))
-(s/def ::msq/tags
-  (s/keys ))
-
 (defn query-spec-name
   [spec]
   (keyword (str (namespace spec) ".query") (name spec)))
@@ -34,7 +17,7 @@
   (eval
    `(s/def ~(query-spec-name spec)
       (s/map-of ~actions
-                ~spec))))
+                (partial s/valid? ~spec)))))
 
 (defn query-map-spec
   [[map-spec fields]]
@@ -83,7 +66,8 @@ Creates:
   (map-of #{:match} :kixi.datastore.metadatastore/name))")
 (def metadata->query-actions
   {::ms/name #{:match}
-   ::ms/sharing {::ms/meta-read #{:contains}}})
+   ::ms/sharing {::ms/meta-read #{:contains}}
+   ::ms/provenance {::ms/created #{:gt :gte :lt :lte}}})
 
 (create-query-specs metadata->query-actions)
 
@@ -96,11 +80,40 @@ Creates:
 
 (define-query-spec)
 
-;; A small set of selectable fields, use when using auto complete searches
+
+;;TODO this is not spohisticated enough, should assert
+;;correct fields are nested at the right levels
+(def field-list
+  (letfn [(collect [m]
+            (when (map? m)
+              (concat (keys m)
+                      (flatten (keep collect (vals m))))))]
+    (set (collect metadata->query-actions))))
+
 (s/def ::fields
-  (s/every #{::ms/name ::ms/id}
+  (s/every (s/or :field field-list
+                 :nested-field ::fields)
            :kind vector?))
+
+(def sort-orders
+  #{:asc :desc})
+
+(s/def ::sort-by
+  (s/every (s/or :sort-by field-list
+                 :nested-sort-by (s/map-of field-list
+                                           ::sort-by)
+                 :sorting (s/and (s/map-of field-list
+                                           sort-orders)
+                                 #(= 1 (count (keys %)))))
+           :kind vector?))
+
+(s/def ::from integer?)
+(s/def ::size integer?)
 
 (s/def ::query-map
   (s/or :nil nil?
-        :query (s/keys :opt-un [::query ::fields])))
+        :query (s/keys :opt-un [::query
+                                ::fields
+                                ::sort-by
+                                ::from
+                                ::size])))

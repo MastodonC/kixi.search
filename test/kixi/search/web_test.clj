@@ -37,3 +37,14 @@
              (set-params (sut/ensure-group-access
                           [1 2 3]
                           {::msq/file-read {:contains [1 4]}}))))))
+
+(t/deftest fields-parsed
+  (t/testing "Simple field"
+    (t/is (= [:a]
+             (sut/parse-nested-vectors ["a"]))))
+  (t/testing "Nested field"
+    (t/is (= [:a [:b]]
+             (sut/parse-nested-vectors ["a" ["b"]]))))
+  (t/testing "Nested nested fields"
+    (t/is (= [:a [:b] [:c [:d [:e :f]]]]
+             (sut/parse-nested-vectors ["a" ["b"] ["c" ["d" ["e" "f"]]]])))))
