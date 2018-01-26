@@ -15,7 +15,7 @@
              [kinesis :as kinesis]
              [coreasync :as coreasync]]
             [taoensso.timbre :as log]
-            [medley.core :as med]))
+            [medley :as med]))
 
 (defn config
   "Read EDN config, with the given profile. See Aero docs at

@@ -9,7 +9,7 @@
             [joplin.repl :as jrepl]
             [kixi.search.query-model :as model]
             [kixi.search.time :as t]
-            [medley.core :refer [map-vals]]
+            [medley :refer [map-vals]]
             [taoensso.timbre :as timbre :refer [error info]]))
 
 (def put-opts (merge {:consistency (env :elasticsearch-consistency "default")

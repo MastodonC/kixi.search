@@ -19,7 +19,7 @@
             [kixi.search.elasticsearch.query :as es]
             [kixi.spec :refer [alias]]
             [taoensso.timbre :as timbre :refer [error info infof]]
-            [medley.core :refer [map-vals]]
+            [medley :refer [map-vals]]
             [clojure.java.io :as io]
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.util.response :refer [not-found response status]]

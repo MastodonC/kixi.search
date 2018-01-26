@@ -2,7 +2,7 @@
   (:require [kixi.search.web :as sut]
             [clojure.test :as t]
             [kixi.spec :refer [alias]]
-            [medley.core :refer [map-vals]]
+            [medley :refer [map-vals]]
             [com.rpl.specter :as specter :refer [MAP-VALS]]
             [clojure.spec.alpha :as spec]))
 

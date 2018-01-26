@@ -24,7 +24,6 @@
                  [kixi/kixi.spec "0.1.13"]
                  [joplin.core "0.3.9"]
                  [joplin.elasticsearch "0.3.9"]
-                 [medley "1.0.0"]
                  [org.clojure/clojure "1.9.0-alpha17"]
                  [org.clojure/tools.nrepl "0.2.12"]
                  [com.rpl/specter "1.0.5"]

@@ -47,7 +47,6 @@
   (elasticsearch-url {:protocol (env :es-protocol "http")
                       :host (env :es-host "localhost")
                       :port (env :es-port "9200")}))
-(def es-url "https://vpc-staging-kixi-search-lg6tvmynyrm2ckwwfnntomrxs4.eu-central-1.es.amazonaws.com:443")
 
 (def get-by-id (partial sut/get-by-id mc/index-name mc/doc-type es-url))
 (def search-data (partial sut/search-data mc/index-name mc/doc-type es-url))
@@ -161,7 +160,7 @@
                (search-data {:query {::md/id {:contains [first-id second-id]}}
                              :sort-by [{::md/provenance {::md/created :desc}}]})))))
 
-(deftest serch-by-id-paging
+(deftest search-by-id-paging
   (let [first-id (uuid)
         first-data (file-event first-id)
         _ (insert-data first-id first-data)
