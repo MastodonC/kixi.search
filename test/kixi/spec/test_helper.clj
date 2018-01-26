@@ -3,8 +3,10 @@
              [test :refer :all]]
             [clojure.spec.alpha :as s]
             [clojure.test :refer :all]
+            [environ.core :refer [env]]
             [clojure.spec.test.alpha :as stest]
             [clojure.test.check :as tc]
+            [taoensso.timbre :as timbre :refer [error]]
             [com.gfredericks.test.chuck.clojure-test :as chuck]))
 
 (def sample-size 20)
@@ -79,4 +81,47 @@
                                         :expected exp# :actual act#})))
      (catch Throwable t#
        (clojure.test/do-report {:type :error :message "Exception diffing"
+                                :expected ~expected :actual t#})))  )
+
+(def wait-tries (Integer/parseInt (env :wait-tries "100")))
+(def wait-per-try (Integer/parseInt (env :wait-per-try "10")))
+
+(defn wait-for-pred
+  ([p]
+   (wait-for-pred p wait-tries))
+  ([p tries]
+   (wait-for-pred p tries wait-per-try))
+  ([p tries ms]
+   (loop [try tries
+          pre-result nil]
+     (if (pos? try)
+       (let [result (p)]
+         (if-not (:pass result)
+           (do
+             (Thread/sleep ms)
+             (recur (dec try) result))
+           result))
+       pre-result))))
+
+(defmacro wait-is=
+  [expected actual & [msg]]
+  `(try
+     (let [act# ~actual
+           exp# ~expected
+           result# (wait-for-pred #(let [r# ~actual]
+                                     (if (= exp#
+                                            r#)
+                                       {:pass true
+                                        :result r#}
+                                       {:pass false
+                                        :result r#})))]
+       (if (:pass result#)
+         (clojure.test/do-report {:type :pass
+                                  :message "Matched"
+                                  :expected exp# :actual (:result result#)})
+         (clojure.test/do-report {:type :fail
+                                  :message (or ~msg "Out come never acheived")
+                                  :expected exp# :actual (:result result#)})))
+     (catch Throwable t#
+       (clojure.test/do-report {:type :error :message "Exception waiting"
                                 :expected ~expected :actual t#}))))
