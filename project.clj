@@ -14,6 +14,8 @@
                  [com.amazonaws/aws-java-sdk "1.11.53" :exclusions [joda-time]]
                  [com.gfredericks/test.chuck "0.2.8"]
                  [com.taoensso/timbre "4.8.0"]
+                 [com.fzakaria/slf4j-timbre "0.3.7"]
+                 [org.slf4j/log4j-over-slf4j "1.7.25"]
                  [com.walmartlabs/lacinia "0.23.0"]
                  [honeysql "0.9.1"]
                  [kixi/kixi.comms "0.2.31"]

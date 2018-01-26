@@ -173,7 +173,6 @@
 
 (defn insert-data
   [index-name doc-type es-url id document]
-  (clojure.pprint/pprint (json/generate-string (all-keys->es-format document)))
   (client/put (str es-url "/" index-name "/" doc-type "/" id)
               {:body (json/generate-string (all-keys->es-format document))
                :as :json
@@ -234,11 +233,6 @@
                v)))
     {}
     m)))
-
-(defn prn-t
-  [x]
-  (prn x)
-  x)
 
 (defn submaps-with
   [nested-map k]

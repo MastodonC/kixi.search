@@ -8,9 +8,12 @@
             [kixi.search.elasticsearch.event-handlers.metadata-create :as mc]
             [kixi.spec :refer [alias]]
             [kixi.spec.conformers :as conformers]
-            [kixi.user :as user]))
+            [kixi.user :as user]
+            [taoensso.timbre :as timbre]))
 
 (alias 'kixi.datastore.metadatastore.query 'mq)
+
+(timbre/set-level! :warn)
 
 (def wait-tries (Integer/parseInt (env :wait-tries "100")))
 (def wait-per-try (Integer/parseInt (env :wait-per-try "10")))
@@ -64,7 +67,7 @@
 (defn ensure-index
   [all-tests]
   (when-not (sut/index-exists? es-url mc/index-name)
-    (sut/create-index es-url mc/index-name mc/doc-type mc/doc-def))
+    (sut/create-index es-url mc/index-name mc/doc-type mc/doc-def)    )
   (all-tests))
 
 (defn instrument
@@ -100,7 +103,6 @@
     (insert-data uid data)
     (is (= data
            (get-by-id uid)))))
-
 
 (deftest search-by-id
   (let [uid (uuid)
