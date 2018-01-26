@@ -42,9 +42,6 @@
    :index "true"
    :analyzer "autocomplete"})
 
-(def string-autocomplete
-  {:type "long"})
-
 (def timestamp
   {:type "date"
    :format t/es-format})
@@ -331,6 +328,7 @@
                            :doc-type string?
                            :conn string?
                            :query-map ::model/query-map))
+
 (defn search-data
   [index-name doc-type conn query-map]
   (try
