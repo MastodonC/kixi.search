@@ -9,7 +9,7 @@
             [kixi.spec :refer [alias]]
             [kixi.spec.conformers :as conformers]
             [kixi.user :as user]
-            [taoensso.timbre :as timbre]))
+            [taoensso.timbre :as timbre :refer [error]]))
 
 (alias 'kixi.datastore.metadatastore.query 'mq)
 
@@ -32,7 +32,7 @@
              (Thread/sleep ms)
              (recur (dec try)))
            result))
-       (prn "Run out of pred attempts!")))))
+       (error "Run out of pred attempts!")))))
 
 (defn elasticsearch-url
   [{:keys [protocol host port]}]
