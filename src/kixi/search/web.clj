@@ -19,7 +19,7 @@
             [kixi.search.elasticsearch.query :as es]
             [kixi.spec :refer [alias]]
             [taoensso.timbre :as timbre :refer [error info infof]]
-            [medley.core :refer [map-vals]]
+            [medley :refer [map-vals]]
             [clojure.java.io :as io]
             [ring.adapter.jetty :refer [run-jetty]]
             [ring.util.response :refer [not-found response status]]
@@ -28,7 +28,7 @@
             [clojure.spec.alpha :as s]
             [kixi.search.elasticsearch.query :as query]
             [kixi.search.query-model :as model]
-            [com.rpl.specter :as specter :refer [MAP-VALS]]))
+            [com.rpl.specter :as specter :refer [MAP-VALS ALL STAY]]))
 
 (defn healthcheck
   [_]
@@ -81,13 +81,27 @@
                  [::msq/meta-read :contains]
                  #(or % (vec users-groups))))))
 
+(def EVERYTHING
+  (specter/recursive-path
+   [] p
+   (specter/if-path vector?
+                    [ALL p]
+                    STAY)))
+
+(defn parse-nested-vectors
+  [unparsed]
+  (specter/transform
+   [EVERYTHING]
+   namespaced-keyword
+   unparsed))
+
 (defn metadata-query
   [query]
   (fn [request]
     (let [query-raw (update (json/parse-string (body-string request)
                                                namespaced-keyword)
-                            :fields
-                            (partial mapv namespaced-keyword))
+                            :fields parse-nested-vectors
+                            :sort-by parse-nested-vectors)
           conformed-query (spec/conform ::model/query-map
                                         query-raw)]
       ;;TODO user-groups header must be present
@@ -96,12 +110,7 @@
          (query/find-by-query query
                               (update-in (or (:query (apply hash-map conformed-query)) {})
                                          [:query ::msq/sharing]
-                                         (partial ensure-group-access (request->user-groups request)))
-                              0  ;;from-index
-                              10 ;;cnt
-                              ["kixi.datastore.metadatastore/id"] ;;sort-by
-                              :asc ;;sort-order
-                              ))
+                                         (partial ensure-group-access (request->user-groups request)))))
         {:status 400
          :body (spec/explain-data ::model/query-map query-raw)}))))
 

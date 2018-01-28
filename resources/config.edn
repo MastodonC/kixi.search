@@ -10,7 +10,7 @@
            ;; Control log filtering by namespaces/patterns. Useful for turning off
            ;; logging in noisy libraries, etc.:
            ;;:ns-whitelist  ["whiner.*"] #_["my-app.foo-ns"]
-           :ns-blacklist ["org.eclipse.jetty"]
+           :ns-blacklist ["org.eclipse.jetty" "org.apache.http"]
            :kixi-comms-verbose-logging #profile {:default true
                                                  :staging true
                                                  :prod true}

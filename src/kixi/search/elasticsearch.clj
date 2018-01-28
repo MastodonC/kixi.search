@@ -1,15 +1,16 @@
 (ns kixi.search.elasticsearch
   (:require [cheshire.core :as json]
-            [clojurewerkz.elastisch.native :as esr]
-            [clojurewerkz.elastisch.native
-             [document :as esd]
-             [response :as esrsp]]
             [clj-http.client :as client]
+            [clojure.spec.alpha :as spec]
+            [clojurewerkz.elastisch.native :as esr]
+            [clojurewerkz.elastisch.native.document :as esd]
+            [com.rpl.specter :as specter]
             [environ.core :refer [env]]
             [joplin.repl :as jrepl]
+            [kixi.search.query-model :as model]
             [kixi.search.time :as t]
-            [taoensso.timbre :as timbre :refer [error info]]
-            [com.rpl.specter :as specter]))
+            [medley :refer [map-vals]]
+            [taoensso.timbre :as timbre :refer [error info]]))
 
 (def put-opts (merge {:consistency (env :elasticsearch-consistency "default")
                       :replication (env :elasticsearch-replication "default")
@@ -171,6 +172,7 @@
   [index-name doc-type es-url id document]
   (client/put (str es-url "/" index-name "/" doc-type "/" id)
               {:body (json/generate-string (all-keys->es-format document))
+               :as :json
                :headers {:content-type "application/json"}}))
 
 
@@ -220,18 +222,14 @@
    (reduce
     (fn [a [k v]]
       (if (and (map? v)
-               (every? map? (vals v)))
+               (or (every? map? (vals v))
+                   (every? (comp model/sort-orders keyword) (vals v))))
         (merge a
                (collapse-nesting v (str prefix k ".")))
         (assoc a (str prefix k)
                v)))
     {}
     m)))
-
-(defn prn-t
-  [x]
-  (prn x)
-  x)
 
 (defn submaps-with
   [nested-map k]
@@ -251,23 +249,50 @@
      #(get % k) $)
     (when-not (empty? $) $)))
 
+(defn field-vectors->collapsed-es-fields
+  [kw-or-vec]
+  (cond
+    (vector? kw-or-vec) (->> kw-or-vec
+                             (mapv kw->es-format)
+                             (clojure.string/join "."))
+    (keyword? kw-or-vec) (kw->es-format kw-or-vec)))
+
+(defn sort-by->collapsed-es-sorts
+  [sort-def]
+  (cond
+    (keyword? sort-def) {sort-def "asc"}
+    (map? sort-def) (->> sort-def
+                         (map-vals (some-fn model/sort-orders sort-by->collapsed-es-sorts))
+                         all-keys->es-format
+                         collapse-nesting)))
+
 (defn query->es-filter
-  [{:keys [query fields] :as query-map}]
+  [{:keys [query fields sort-by from size] :as query-map}]
   (let [flat-query (collapse-nesting
                     (all-keys->es-format
                      query))]
-    (prn "QM: " flat-query)
-    (prn-t (merge {:query
-                   {:bool
-                    (merge {:filter {:terms (select-nested
-                                             flat-query
-                                             "contains")}}
-                           (when-let [matchers (select-nested
-                                                flat-query
-                                                "match")]
-                             {:must {:match matchers}}))}}
-                  (when-not (empty? fields)
-                    {:_source (mapv kw->es-format fields)})))))
+    (merge {:query
+            {:bool
+             (merge {:filter (merge (when-let [contains (select-nested
+                                                         flat-query
+                                                         "contains")]
+                                      {:terms contains})
+                                    (when-let [equals (select-nested
+                                                       flat-query
+                                                       "equals")]
+                                      {:term equals}))}
+                    (when-let [matchers (select-nested
+                                         flat-query
+                                         "match")]
+                      {:must {:match matchers}}))}}
+           (when-not (empty? fields)
+             {:_source (mapv field-vectors->collapsed-es-fields fields)})
+           (when-not (empty? sort-by)
+             {:sort (mapv sort-by->collapsed-es-sorts sort-by)})
+           (when from
+             {:from from})
+           (when size
+             {:size (min size 100)}))))
 
 (defn str->keyword
   [^String s]
@@ -281,6 +306,16 @@
        (mapv str->keyword)
        (clojure.string/join ".")))
 
+(defn get-by-id
+  [index-name doc-type es-url id]
+  (let [resp (client/get (str es-url "/" index-name "/" doc-type "/" id)
+                         {:throw-exceptions false})]
+    (when (= 200 (:status resp))
+      (-> (:body resp)
+          (json/parse-string keyword)
+          :_source
+          all-keys->kw))))
+
 (defn search
   [es-url index-name doc-type query]
   (client/get
@@ -288,34 +323,36 @@
    {:body (json/generate-string query)
     :headers {:content-type "application/json"}}))
 
+(spec/fdef search-data
+           :args (spec/cat :index-name string?
+                           :doc-type string?
+                           :conn string?
+                           :query-map ::model/query-map))
+
 (defn search-data
-  [index-name doc-type conn query-map from-index cnt sort-by sort-order]
+  [index-name doc-type conn query-map]
   (try
-    (let [resp (prn-t (json/parse-string
-                       (:body (search conn
-                                      index-name
-                                      doc-type
-                                      (merge (query->es-filter query-map)
-                                             {:from from-index
-                                              :size cnt
-                                              :sort {(sort-by-vec->str sort-by)
-                                                     {:order sort-order}}})))
-                       keyword))]
+    (let [resp (json/parse-string
+                (:body (search conn
+                               index-name
+                               doc-type
+                               (query->es-filter query-map)))
+                keyword)]
       {:items (mapv (comp all-keys->kw (some-fn :_source :fields))
                     (get-in resp [:hits :hits]))
        :paging {:total (get-in resp [:hits :total])
                 :count (count (get-in resp [:hits :hits]))
-                :index from-index}})
+                :index (:from query-map 0)}})
     (catch Exception e
       (error e)
       (throw e))))
 
 (defn index-exists?
   [es-url index-name]
-  (->> (str es-url "/" index-name)
-       client/head
-       :status
-       (= 200)))
+  (-> (str es-url "/" index-name)
+      (client/head {:throw-exceptions false})
+      :status
+      (= 200)))
 
 (defn create-index-
   [es-url index-name definition]
