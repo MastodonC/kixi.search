@@ -3,9 +3,6 @@
             [clojure.edn :as edn]
             [cheshire.core :as json]
             [clojure.spec.alpha :as spec]
-            [com.walmartlabs.lacinia.util :refer [attach-resolvers]]
-            [com.walmartlabs.lacinia :refer [execute]]
-            [com.walmartlabs.lacinia.schema :as schema]
             [bidi
              [bidi :refer [tag]]
              [ring :refer [make-handler]]

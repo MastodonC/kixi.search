@@ -366,7 +366,9 @@
                  index-name
                  {:mappings {doc-type
                              {:properties (all-keys->es-format definition)}}
-                  :settings {:number_of_shards 1 ;; See https://www.elastic.co/guide/en/elasticsearch/guide/master/relevance-is-broken.html
+                  :settings {:number_of_shards 1
+                             ;; TODO SORT THIS OUT BEFORE MASTER MERGE
+                             ;; See https://www.elastic.co/guide/en/elasticsearch/guide/master/relevance-is-broken.html
                              :analysis {:filter {:autocomplete_filter
                                                  {:type "edge_ngram"
                                                   :min_gram 1 ;; Might want this to be 2
