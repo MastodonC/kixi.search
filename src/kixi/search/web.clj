@@ -1,31 +1,23 @@
 (ns kixi.search.web
-  (:require [byte-streams :as bs]
-            [clojure.edn :as edn]
+  (:require [bidi.bidi :refer [tag]]
+            [bidi.ring :refer [make-handler]]
+            [bidi.vhosts :refer [vhosts-model]]
+            [byte-streams :as bs]
             [cheshire.core :as json]
-            [clojure.spec.alpha :as spec]
-            [bidi
-             [bidi :refer [tag]]
-             [ring :refer [make-handler]]
-             [vhosts :refer [vhosts-model]]]
-            [com.stuartsierra.component :as component]
-            [kixi.search.graphql :refer [namespaced-map->graphql-map
-                                         graphql-map->namespaced-map
-                                         graphql-keyword->keyword
-                                         keyword->graphql-keyword
-                                         assoc-in-queries]]
-            [kixi.search.elasticsearch.query :as es]
-            [kixi.spec :refer [alias]]
-            [taoensso.timbre :as timbre :refer [error info infof]]
-            [medley :refer [map-vals]]
+            [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [ring.adapter.jetty :refer [run-jetty]]
-            [ring.util.response :refer [not-found response status]]
-            [ring.util.request :refer [body-string]]
-            [ring.middleware.json :refer [wrap-json-response]]
-            [clojure.spec.alpha :as s]
-            [kixi.search.elasticsearch.query :as query]
+            [clojure.spec.alpha :as spec]
+            [com.rpl.specter :as specter :refer [ALL MAP-VALS STAY]]
+            [com.stuartsierra.component :as component]
+            [kixi.search.metadata.query :as query]
             [kixi.search.query-model :as model]
-            [com.rpl.specter :as specter :refer [MAP-VALS ALL STAY]]))
+            [kixi.spec :refer [alias]]
+            [medley :refer [map-vals]]
+            [ring.adapter.jetty :refer [run-jetty]]
+            [ring.middleware.json :refer [wrap-json-response]]
+            [ring.util.request :refer [body-string]]
+            [ring.util.response :refer [not-found response status]]
+            [taoensso.timbre :as timbre :refer [error info infof]]))
 
 (defn healthcheck
   [_]

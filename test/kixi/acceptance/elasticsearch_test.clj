@@ -4,13 +4,15 @@
             [clojure.test :refer :all]
             [environ.core :refer [env]]
             [kixi.datastore.metadatastore :as md]
-            [kixi.search.elasticsearch :as sut]
-            [kixi.search.elasticsearch.event-handlers.metadata-create :as mc]
+            [kixi.search.elasticsearch.client :as sut]
+            [kixi.search.metadata.event-handlers.update :as mc]
             [kixi.spec :refer [alias]]
             [kixi.spec.conformers :as conformers]
             [kixi.spec.test-helper :refer [wait-is=]]
             [kixi.user :as user]
-            [taoensso.timbre :as timbre :refer [error]]))
+            [taoensso.timbre :as timbre :refer [error]]
+            [kixi.search.elasticsearch.index-manager :as index-manager]
+            [com.stuartsierra.component :as component]))
 
 (alias 'kixi.datastore.metadatastore.query 'mq)
 
@@ -43,13 +45,20 @@
   []
   (str (java.util.UUID/randomUUID)))
 
-(def es-url
-  (elasticsearch-url {:protocol (env :es-protocol "http")
-                      :host (env :es-host "localhost")
-                      :port (env :es-port "9200")}))
+(def es-config
+  {:protocol (env :es-protocol "http")
+   :host (env :es-host "localhost")
+   :port (env :es-port "9200")
+   :profile "test"})
 
-(def get-by-id (partial sut/get-by-id mc/index-name mc/doc-type es-url))
-(def search-data (partial sut/search-data mc/index-name mc/doc-type es-url))
+(def es-url
+  (elasticsearch-url es-config))
+
+(def profile-index
+  (str (:profile es-config) "-" "kixi-search_metadata"))
+
+(def get-by-id (partial sut/get-by-id profile-index mc/doc-type es-url))
+(def search-data (partial sut/search-data profile-index mc/doc-type es-url))
 
 (defn wait-for-indexed
   [id]
@@ -57,7 +66,7 @@
 
 (defn insert-data
   [id data]
-  (sut/insert-data mc/index-name
+  (sut/insert-data profile-index
                    mc/doc-type
                    es-url
                    id
@@ -65,10 +74,9 @@
 
 (defn ensure-index
   [all-tests]
-  (when-not (sut/index-exists? es-url mc/index-name)
-    ;;(sut/create-index es-url mc/index-name mc/doc-type mc/doc-def)
-    )
-  (all-tests))
+  (let [index-manager (component/start (index-manager/map->IndexManager es-config))]
+    (all-tests)
+    (component/stop index-manager)))
 
 (defn instrument
   [all-tests]

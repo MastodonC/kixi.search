@@ -1,9 +1,8 @@
-(ns kixi.search.elasticsearch.query
-  (:require [com.stuartsierra.component :as component]
-            [clojure.spec.alpha :as s]
+(ns kixi.search.metadata.query
+  (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
-            [kixi.search.elasticsearch :as es]
-            [kixi.comms :as comms]
+            [com.stuartsierra.component :as component]
+            [kixi.search.elasticsearch.client :as es]
             [taoensso.timbre :as timbre :refer [info]]))
 
 (defprotocol Query
@@ -18,11 +17,6 @@
                      (find-by-id- [this id] (throw (ex "id")))
                      (find-by-query- [this query-map from-index cnt sort-by sort-order] (throw (ex "query"))))))))
 
-(s/fdef find-by-id
-        :args (s/cat :impl ::query
-                     :id string?)
-        )
-
 (defn find-by-id
   [impl id]
   (find-by-id- impl id))
@@ -33,20 +27,21 @@
 
 (def sfirst (comp second first))
 
-(def index-name "kixi-datastore_file-metadata")
-(def doc-type "file-metadata")
+(def index-name "kixi-search_metadata")
+(def doc-type "metadata")
 
 (defrecord ElasticSearch
-    [communications protocol host port native-port cluster discover migrators-dir es-url]
+    [communications protocol host port profile
+     es-url profile-index]
 
   Query
   (find-by-id-
     [this id]
-    (es/get-document index-name doc-type es-url id))
+    (es/get-document profile-index doc-type es-url id))
 
   (find-by-query-
     [this query-map from-index cnt sort-by sort-order]
-    (es/search-data index-name
+    (es/search-data profile-index
                     doc-type
                     es-url
                     query-map
@@ -58,17 +53,13 @@
   component/Lifecycle
   (start [component]
     (if-not es-url
-      (let [{:keys [native-host-ports http-host-ports]} {:http-host-ports [[host port]]}
-            joplin-conf {:migrators {:migrator "joplin/kixi/datastore/metadatastore/migrators/"}
-                         :databases {:es {:type :es :host (ffirst http-host-ports)
-                                          :port (sfirst http-host-ports)
-                                          :migration-index "metadatastore-migrations"}}
-                         :environments {:env [{:db :es :migrator :migrator}]}}]
+      (do
         (info "Starting File Metadata ElasticSearch Store")
         ;;joplin ES is using elastisch 2.x via native, not going to work
         ;;(es/migrate :env joplin-conf)
-        (assoc component :es-url
-               (str protocol "://" host ":" port)))
+        (assoc component
+               :es-url (str protocol "://" host ":" port)
+               :profile-index (str profile "-" index-name)))
       component))
   (stop [component]
     (if es-url

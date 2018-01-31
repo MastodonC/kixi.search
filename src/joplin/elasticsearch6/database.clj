@@ -125,9 +125,7 @@
                      migration-index
                      migration-type
                      migration-document-id)
-           :_source
-           :migrations
-           es-format->kw))
+           :migrations))
 
 (defn es-add-migration-id
   [es-url migration-index migration-id]

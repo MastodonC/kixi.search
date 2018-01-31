@@ -1,20 +1,20 @@
-(ns kixi.search.elasticsearch.event-handlers.metadata-create
+(ns kixi.search.metadata.event-handlers.update
   (:require [com.stuartsierra.component :as component]
             [kixi.comms :as c]
-            [kixi.search.elasticsearch :as es]
+            [kixi.datastore.metadatastore :as md]
+            [kixi.search.elasticsearch.client :as es]
             [kixi.spec :refer [alias]]
-            [taoensso.timbre :as timbre :refer [info]]
-            [kixi.datastore.metadatastore :as md]))
+            [taoensso.timbre :as timbre :refer [info]]))
 
 (alias 'cs 'kixi.datastore.communication-specs)
 
-(def index-name "kixi-datastore_file-metadata")
-(def doc-type "file-metadata")
+(def index-name "kixi-search_metadata")
+(def doc-type "metadata")
 
 (def local-es-url "http://localhost:9200")
 
 (defn insert-metadata
-  [es-url metadata]
+  [es-url index-name metadata]
   (es/insert-data
    index-name
    doc-type
@@ -29,7 +29,7 @@
 
 
 (defmethod update-metadata-processor ::cs/file-metadata-created
-  [es-url update-event]
+  [es-url index-name update-event]
   (let [metadata (::md/file-metadata update-event)]
     (info "Create: " metadata)
     (es/insert-data
@@ -72,20 +72,23 @@
   (str (:protocol connection) "://" (:host connection) ":" (:port connection 9200)) )
 
 (defrecord MetadataCreate
-    [communications protocol host port es-url started]
+    [communications started protocol host port profile
+     es-url profile-index-name]
   component/Lifecycle
   (start [component]
     (if-not started
-      (let [es-url   (str protocol "://" host ":" port)]
+      (let [es-url (str protocol "://" host ":" port)
+            profile-index (str profile "-" index-name)]
         (c/attach-event-handler! communications
                                  :kixi.search/metadata-update
                                  :kixi.datastore.file-metadata/updated
                                  "1.0.0"
                                  (comp response-event
-                                       (partial update-metadata-processor es-url)
+                                       (partial update-metadata-processor es-url profile-index)
                                        :kixi.comms.event/payload))
         (assoc component
                :started true
-               :es-url es-url))
+               :es-url es-url
+               :profile-index-name profile-index))
       component))
   (stop [component]))
