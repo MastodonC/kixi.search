@@ -1,10 +1,10 @@
-(ns kixi.search.elasticsearch.event-handlers.metadata-create
+(ns kixi.search.metadata.event-handlers.update
   (:require [com.stuartsierra.component :as component]
             [kixi.comms :as c]
-            [kixi.search.elasticsearch :as es]
+            [kixi.datastore.metadatastore :as md]
+            [kixi.search.elasticsearch.client :as es]
             [kixi.spec :refer [alias]]
-            [taoensso.timbre :as timbre :refer [info]]
-            [kixi.datastore.metadatastore :as md]))
+            [taoensso.timbre :as timbre :refer [info]]))
 
 (alias 'cs 'kixi.datastore.communication-specs)
 

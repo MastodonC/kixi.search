@@ -1,21 +1,18 @@
 (ns kixi.search.system
   (:require [aero.core :as aero]
             [clojure.java.io :as io]
-            [com.stuartsierra.component
-             :as
-             component]
-            [kixi
-             [comms :as comms]
-             [log :as kixi-log]]
-            [kixi.search.web :as w]
+            [com.stuartsierra.component :as component]
+            [kixi.comms :as comms]
+            [kixi.comms.components.coreasync :as coreasync]
+            [kixi.comms.components.kinesis :as kinesis]
+            [kixi.log :as kixi-log]
+            [kixi.search.elasticsearch.index-manager :as index-manager]
+            [kixi.search.metadata.event-handlers.update :as metadata-create]
+            [kixi.search.metadata.query :as metadata-query]
             [kixi.search.repl :as repl]
-            [kixi.search.elasticsearch.query :as query]
-            [kixi.search.elasticsearch.event-handlers.metadata-create :as metadata-create]
-            [kixi.comms.components
-             [kinesis :as kinesis]
-             [coreasync :as coreasync]]
-            [taoensso.timbre :as log]
-            [medley :as med]))
+            [kixi.search.web :as web]
+            [medley :as med]
+            [taoensso.timbre :as log]))
 
 (defn config
   "Read EDN config, with the given profile. See Aero docs at
@@ -26,9 +23,9 @@
 (def component-dependencies
   {:communications []
    :repl []
-   :query []
+   :metadata-query []
    :metadata-create [:communications]
-   :web [:query]})
+   :web [:metadata-query]})
 
 (defn new-system-map
   [config]
@@ -36,10 +33,14 @@
    :communications (case (first (keys (:communications config)))
                      :kinesis (kinesis/map->Kinesis {})
                      :coreasync (coreasync/map->CoreAsync {}))
-   :query (query/map->ElasticSearch {})
+
+   :index-manager (index-manager/map->IndexManager {})
+
+   :metadata-query (metadata-query/map->ElasticSearch {})
    :metadata-create (metadata-create/map->MetadataCreate {})
+
    :repl (repl/map->ReplServer {})
-   :web (w/map->Web {})))
+   :web (web/map->Web {})))
 
 (defn raise-first
   "Updates the keys value in map to that keys current first value"

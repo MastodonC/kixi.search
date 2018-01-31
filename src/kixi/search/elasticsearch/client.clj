@@ -1,4 +1,4 @@
-(ns kixi.search.elasticsearch
+(ns kixi.search.elasticsearch.client
   (:require [cheshire.core :as json]
             [clj-http.client :as client]
             [clojure.spec.alpha :as spec]
