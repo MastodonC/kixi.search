@@ -52,6 +52,9 @@
 (def double
   {:type "double"})
 
+(def boolean
+  {:type "boolean"})
+
 (defn kw->es-format
   [kw]
   (if (qualified-keyword? kw)
@@ -189,22 +192,6 @@
     (if (error? r)
       (error "Unable to cons data for id: " id ". Trying to update: " ks ". Response: " r)
       r)))
-
-(defn present?
-  [index-name doc-type conn id]
-  (esd/present? conn index-name doc-type id))
-
-(defn discover-executor
-  [url]
-  (let [cluster-info (json/parse-string (slurp url) keyword)]
-    {:native-host-ports (->> cluster-info
-                             (map :transport_address)
-                             (map (comp rest #(re-find #"([0-9\.]+):([0-9]+)" %)))
-                             (map (fn [[h p]] [h (Integer/parseInt p)])))
-     :http-host-ports  (->> cluster-info
-                            (map :http_address)
-                            (map (comp rest #(re-find #"([0-9\.]+):([0-9]+)" %)))
-                            (map (fn [[h p]] [h (Integer/parseInt p)])))}))
 
 (defn connect
   [host-ports cluster]
@@ -366,9 +353,7 @@
                  index-name
                  {:mappings {doc-type
                              {:properties (all-keys->es-format definition)}}
-                  :settings {:number_of_shards 1
-                             ;; TODO SORT THIS OUT BEFORE MASTER MERGE
-                             ;; See https://www.elastic.co/guide/en/elasticsearch/guide/master/relevance-is-broken.html
+                  :settings {:number_of_shards 5
                              :analysis {:filter {:autocomplete_filter
                                                  {:type "edge_ngram"
                                                   :min_gram 1 ;; Might want this to be 2

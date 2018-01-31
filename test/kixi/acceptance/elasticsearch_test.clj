@@ -48,13 +48,17 @@
 (def es-config
   {:protocol (env :es-protocol "http")
    :host (env :es-host "localhost")
-   :port (env :es-port "9200")})
+   :port (env :es-port "9200")
+   :profile "test"})
 
 (def es-url
   (elasticsearch-url es-config))
 
-(def get-by-id (partial sut/get-by-id mc/index-name mc/doc-type es-url))
-(def search-data (partial sut/search-data mc/index-name mc/doc-type es-url))
+(def profile-index
+  (str (:profile es-config) "-" "kixi-search_metadata"))
+
+(def get-by-id (partial sut/get-by-id profile-index mc/doc-type es-url))
+(def search-data (partial sut/search-data profile-index mc/doc-type es-url))
 
 (defn wait-for-indexed
   [id]
@@ -62,7 +66,7 @@
 
 (defn insert-data
   [id data]
-  (sut/insert-data mc/index-name
+  (sut/insert-data profile-index
                    mc/doc-type
                    es-url
                    id

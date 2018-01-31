@@ -13,7 +13,7 @@
    (run! #(info "JOPLIN:" %))))
 
 (defrecord IndexManager
-    [started host port protocol]
+    [started host port protocol profile]
   component/Lifecycle
   (start [component]
     (if-not started
@@ -22,6 +22,7 @@
                                            :protocol protocol
                                            :host host
                                            :port port
+                                           :profile profile
                                            :migration-index "kixi_search-migrations"}}
                          :environments {:env [{:db :es6
                                                :migrator :migrator}]}}]
