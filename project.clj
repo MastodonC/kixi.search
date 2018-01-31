@@ -16,20 +16,18 @@
                  [com.taoensso/timbre "4.8.0"]
                  [com.fzakaria/slf4j-timbre "0.3.7"]
                  [org.slf4j/log4j-over-slf4j "1.7.25"]
-                 [com.walmartlabs/lacinia "0.23.0"]
-                 [honeysql "0.9.1"]
                  [kixi/kixi.comms "0.2.31"]
                  [kixi/kixi.log "0.1.4"]
                  [kixi/kixi.metrics "0.4.0"]
                  [kixi/kixi.spec "0.1.13"]
                  [joplin.core "0.3.9"]
-                 [joplin.elasticsearch "0.3.9"]
                  [org.clojure/clojure "1.9.0-alpha17"]
                  [org.clojure/tools.nrepl "0.2.12"]
                  [com.rpl/specter "1.0.5"]
                  [ring/ring-core "1.6.3"]
                  [ring/ring-jetty-adapter "1.6.3"]
                  [ring/ring-json "0.4.0"]]
+  :exclusions [org.clojure/clojure]
   :repl-options {:init-ns user}
   :global-vars {*warn-on-reflection* true
                 *assert* false}

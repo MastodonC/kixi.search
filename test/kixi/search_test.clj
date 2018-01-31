@@ -3,8 +3,7 @@
             [clj-time.core :as t]
             [kixi.datastore.metadatastore :as md]
             [kixi.spec.conformers :as conformers]
-            [kixi.user :as user]
-            [kixi.search.elasticsearch.event-handlers.metadata-create :as es]))
+            [kixi.user :as user]))
 
 (comment "A large test suite that generates a fixed sequence of datastore events to build up a prod like dataset,
 Then performs various searches to explore the backends and how they perform.

@@ -11,24 +11,7 @@
 (def index-name "kixi-datastore_file-metadata")
 (def doc-type "file-metadata")
 
-;;TODO Move this into some Joplin like thing
-(def doc-def
-  {::md/id es/string-stored-not_analyzed
-   ::md/type es/string-stored-not_analyzed
-   ::md/file-type es/string-stored-not_analyzed
-   ::md/name es/string-autocomplete
-   ::md/description es/string-analyzed
-   ::md/tags es/string-autocomplete
-   ::md/provenance {:properties {::md/source es/string-stored-not_analyzed
-                                 :kixi.user/id es/string-stored-not_analyzed
-                                 ::md/parent-id es/string-stored-not_analyzed
-                                 ::md/created es/timestamp}}
-   ::md/sharing {:properties (zipmap md/activities
-                                     (repeat es/string-stored-not_analyzed))}
-   ::md/size-bytes es/long})
-
 (def local-es-url "http://localhost:9200")
-
 
 (defn insert-metadata
   [es-url metadata]

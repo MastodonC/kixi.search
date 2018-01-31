@@ -66,7 +66,8 @@
 (defn ensure-index
   [all-tests]
   (when-not (sut/index-exists? es-url mc/index-name)
-    (sut/create-index es-url mc/index-name mc/doc-type mc/doc-def))
+    ;;(sut/create-index es-url mc/index-name mc/doc-type mc/doc-def)
+    )
   (all-tests))
 
 (defn instrument
