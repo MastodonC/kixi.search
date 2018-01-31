@@ -28,8 +28,9 @@
                 :prod {:port 18091
                        :request-logging? true}}
 
- :query ^:ref [:es]
+ :index-manager ^:ref [:es]
 
+ :metadata-query ^:ref [:es]
  :metadata-create ^:ref [:es]
 
  :communications #profile  {:local {:coreasync {:app "kixi.search"

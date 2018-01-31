@@ -1,10 +1,8 @@
 (ns kixi.search.elasticsearch.index-manager
   (:require [com.stuartsierra.component :as component]
-            [kixi.search.elasticsearch :as es]
-            [kixi.spec :refer [alias]]
+            [joplin.elasticsearch6.database :as database]
             [joplin.repl :as jrepl]
-            [taoensso.timbre :as timbre :refer [info]]
-            [kixi.datastore.metadatastore :as md]))
+            [taoensso.timbre :as timbre :refer [info]]))
 
 (defn migrate
   [env migration-conf]
@@ -12,7 +10,7 @@
    (with-out-str
      (jrepl/migrate migration-conf env))
    (clojure.string/split-lines)
-   (run! #(prn "JOPLIN:" %))))
+   (run! #(info "JOPLIN:" %))))
 
 (defrecord IndexManager
     [started host port protocol]

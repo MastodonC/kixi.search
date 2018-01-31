@@ -1,9 +1,8 @@
 (ns kixi.search.elasticsearch.migrators.migrate-20180129
   (:require [com.stuartsierra.component :as component]
-            [kixi.search.elasticsearch :as es]
-            [taoensso.timbre :as timbre :refer [info]]
-            [kixi.datastore.metadatastore :as md]))
-
+            [kixi.datastore.metadatastore :as md]
+            [kixi.search.elasticsearch.client :as es]
+            [taoensso.timbre :as timbre :refer [info]]))
 
 (def index-name "kixi-datastore_file-metadata")
 (def doc-type "file-metadata")

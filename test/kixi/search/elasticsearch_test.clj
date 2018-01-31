@@ -1,6 +1,6 @@
 (ns kixi.search.elasticsearch-test
-  (:require [kixi.search.elasticsearch :as sut]
-            [clojure.test :as t :refer :all]))
+  (:require [clojure.test :as t :refer :all]
+            [kixi.search.elasticsearch.client :as sut]))
 
 (deftest select-nested-test
   (testing "returns nil when no matches"

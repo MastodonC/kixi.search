@@ -1,9 +1,8 @@
-(ns kixi.search.elasticsearch.query
-  (:require [com.stuartsierra.component :as component]
-            [clojure.spec.alpha :as s]
+(ns kixi.search.metadata.query
+  (:require [clojure.spec.alpha :as s]
             [clojure.spec.gen.alpha :as gen]
-            [kixi.search.elasticsearch :as es]
-            [kixi.comms :as comms]
+            [com.stuartsierra.component :as component]
+            [kixi.search.elasticsearch.client :as es]
             [taoensso.timbre :as timbre :refer [info]]))
 
 (defprotocol Query
