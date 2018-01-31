@@ -55,8 +55,6 @@
     (if-not es-url
       (do
         (info "Starting File Metadata ElasticSearch Store")
-        ;;joplin ES is using elastisch 2.x via native, not going to work
-        ;;(es/migrate :env joplin-conf)
         (assoc component
                :es-url (str protocol "://" host ":" port)
                :profile-index (str profile "-" index-name)))
