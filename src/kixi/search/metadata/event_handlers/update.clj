@@ -11,8 +11,6 @@
 (def base-index-name "kixi-search_metadata")
 (def doc-type "metadata")
 
-(def local-es-url "http://localhost:9200")
-
 (defmulti update-metadata-processor
   (fn [es-url index-name update-event]
     (::cs/file-metadata-update-type update-event)))
@@ -33,10 +31,21 @@
   (info "Update: " update-event)
   )
 
+(defn sharing-updater
+  [current update-event]
+  (let [group-id (:kixi.group/id update-event)]
+    (update-in current
+               [::md/sharing (::md/activity update-event)]
+               (case (::md/sharing-update update-event)
+                 ::md/sharing-conj #(conj % group-id)
+                 ::md/sharing-disj #(into [] (remove #{group-id} %))))))
+
 (defmethod update-metadata-processor ::cs/file-metadata-sharing-updated
   [es-url index-name update-event]
   (info "Update Share: " update-event)
-  )
+  (es/apply-func index-name doc-type es-url
+                 (::md/id update-event)
+                 #(sharing-updater % update-event)))
 
 (defn dissoc-nonupdates
   [md]
@@ -103,10 +112,24 @@
    current
    updates))
 
+(defn dissoc-nonupdates
+  [md]
+  (reduce
+   (fn [acc [k v]]
+     (if (and (qualified-keyword? k)
+              (clojure.string/index-of (namespace k) ".update"))
+       (assoc acc k v)
+       acc))
+   {}
+   md))
+
 (defmethod update-metadata-processor ::cs/file-metadata-update
   [es-url index-name update-event]
   (info "Update: " update-event)
-  )
+  (es/apply-func index-name doc-type es-url
+                 (::md/id update-event)
+                 #(apply-updates %
+                                 (dissoc-nonupdates update-event))))
 
 (defn response-event
   [r]
@@ -114,7 +137,7 @@
 
 (defn connection->es-url
   [connection]
-  (str (:protocol connection) "://" (:host connection) ":" (:port connection 9200)) )
+  (str (:protocol connection) "://" (:host connection) ":" (:port connection 9200)))
 
 (defrecord MetadataCreate
     [communications started protocol host port profile
