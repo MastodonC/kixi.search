@@ -27,6 +27,8 @@
                  [ring/ring-core "1.6.3"]
                  [ring/ring-jetty-adapter "1.6.3"]
                  [ring/ring-json "0.4.0"]]
+  :test-selectors {:integration :integration
+                   :acceptance (complement :integration)}
   :exclusions [org.clojure/clojure]
   :repl-options {:init-ns user}
   :global-vars {*warn-on-reflection* true

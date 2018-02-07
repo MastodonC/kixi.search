@@ -83,7 +83,7 @@
        (clojure.test/do-report {:type :error :message "Exception diffing"
                                 :expected ~expected :actual t#})))  )
 
-(def wait-tries (Integer/parseInt (env :wait-tries "100")))
+(def wait-tries (Integer/parseInt (env :wait-tries "200")))
 (def wait-per-try (Integer/parseInt (env :wait-per-try "10")))
 
 (defn wait-for-pred
@@ -103,6 +103,21 @@
            result))
        pre-result))))
 
+(defn ensure-pred
+  ([p]
+   (ensure-pred p wait-tries))
+  ([p tries]
+   (ensure-pred p tries wait-per-try))
+  ([p tries ms]
+   (loop [try tries
+          pre-result nil]
+     (if (pos? try)
+       (let [result (p)]
+         (do
+           (Thread/sleep ms)
+           (recur (dec try) result)))
+       pre-result))))
+
 (defmacro wait-is=
   [expected actual & [msg]]
   `(try
@@ -115,6 +130,29 @@
                                         :result r#}
                                        {:pass false
                                         :result r#})))]
+       (if (:pass result#)
+         (clojure.test/do-report {:type :pass
+                                  :message "Matched"
+                                  :expected exp# :actual (:result result#)})
+         (clojure.test/do-report {:type :fail
+                                  :message (or ~msg "Out come never acheived")
+                                  :expected exp# :actual (:result result#)})))
+     (catch Throwable t#
+       (clojure.test/do-report {:type :error :message "Exception waiting"
+                                :expected ~expected :actual t#}))))
+
+(defmacro always-is=
+  [expected actual & [msg]]
+  `(try
+     (let [act# ~actual
+           exp# ~expected
+           result# (ensure-pred #(let [r# ~actual]
+                                   (if (= exp#
+                                          r#)
+                                     {:pass true
+                                      :result r#}
+                                     {:pass false
+                                      :result r#})))]
        (if (:pass result#)
          (clojure.test/do-report {:type :pass
                                   :message "Matched"
