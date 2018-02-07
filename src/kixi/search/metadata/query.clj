@@ -37,7 +37,7 @@
   Query
   (find-by-id-
     [this id]
-    (es/get-document profile-index doc-type es-url id))
+    (es/get-by-id profile-index doc-type es-url id))
 
   (find-by-query-
     [this query-map from-index cnt sort-by sort-order]

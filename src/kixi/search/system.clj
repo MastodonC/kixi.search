@@ -7,7 +7,7 @@
             [kixi.comms.components.kinesis :as kinesis]
             [kixi.log :as kixi-log]
             [kixi.search.elasticsearch.index-manager :as index-manager]
-            [kixi.search.metadata.event-handlers.update :as metadata-create]
+            [kixi.search.metadata.event-handlers.update :as metadata-update]
             [kixi.search.metadata.query :as metadata-query]
             [kixi.search.repl :as repl]
             [kixi.search.web :as web]
@@ -24,7 +24,7 @@
   {:communications []
    :repl []
    :metadata-query []
-   :metadata-create [:communications]
+   :metadata-update [:communications]
    :web [:metadata-query]})
 
 (defn new-system-map
@@ -37,7 +37,7 @@
    :index-manager (index-manager/map->IndexManager {})
 
    :metadata-query (metadata-query/map->ElasticSearch {})
-   :metadata-create (metadata-create/map->MetadataCreate {})
+   ;;   :metadata-update (metadata-update/map->MetadataCreate {})
 
    :repl (repl/map->ReplServer {})
    :web (web/map->Web {})))

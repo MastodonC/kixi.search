@@ -1,5 +1,6 @@
 (ns kixi.acceptance.elasticsearch-test
-  (:require [clj-time.core :as t]
+  (:require [cheshire.core :as json]
+            [clj-time.core :as t]
             [clojure.spec.test.alpha :as spec-test]
             [clojure.test :refer :all]
             [environ.core :refer [env]]
@@ -8,7 +9,7 @@
             [kixi.search.metadata.event-handlers.update :as mc]
             [kixi.spec :refer [alias]]
             [kixi.spec.conformers :as conformers]
-            [kixi.spec.test-helper :refer [wait-is=]]
+            [kixi.spec.test-helper :refer [wait-is= is-submap]]
             [kixi.user :as user]
             [taoensso.timbre :as timbre :refer [error]]
             [kixi.search.elasticsearch.index-manager :as index-manager]
@@ -58,7 +59,9 @@
   (str (:profile es-config) "-" "kixi-search_metadata"))
 
 (def get-by-id (partial sut/get-by-id profile-index mc/doc-type es-url))
+(def get-by-id-raw- (partial sut/get-by-id-raw- profile-index mc/doc-type es-url))
 (def search-data (partial sut/search-data profile-index mc/doc-type es-url))
+(def apply-func (partial sut/apply-func profile-index mc/doc-type es-url))
 
 (defn wait-for-indexed
   [id]
@@ -117,7 +120,7 @@
         data (file-event uid)]
     (insert-data uid data)
     (wait-is= data
-              ((comp first :items) (search-data {:query {::md/id {:equals uid}}})))))
+              ((comp first :items) (search-data {:query {::md/id {:equals uid}}})))    ))
 
 (deftest search-by-id-filter-fields
   (testing "Top level field"
@@ -199,3 +202,37 @@
               (search-data {:query {::md/id {:contains [first-id second-id third-id]}}
                             :sort-by [{::md/provenance {::md/created :asc}}]
                             :from 1}))))
+
+(deftest apply-update-function
+  (testing "Original doesn't exist"
+    (is (thrown-with-msg? Exception
+                          #"clj-http: status 400"
+                          (apply-func (uuid) #(assoc % :new-field 1)))))
+  (testing "Simple valid update"
+    (let [uid (uuid)
+          data (file-event uid)
+          _ (insert-data uid data)]
+      (wait-is= data
+                ((comp first :items) (search-data {:query {::md/id {:equals uid}}})))
+      (apply-func uid #(assoc % :new-field 1))
+      (wait-is= (assoc data :new-field 1)
+                ((comp first :items) (search-data {:query {::md/id {:equals uid}}})))
+      (wait-is= 2
+                (-> (get-by-id-raw- uid)
+                    :body
+                    (json/parse-string keyword)
+                    :_version))))
+  (testing "Concurrent update failure"
+    (let [uid (uuid)
+          data (file-event uid)
+          _ (insert-data uid data)]
+      (wait-is= data
+                ((comp first :items) (search-data {:query {::md/id {:equals uid}}})))
+      (let [first-resp (future (apply-func uid #(do (Thread/sleep 20)
+                                                    (assoc % :first 1))))
+            second-resp (future (apply-func uid #(assoc % :second 2)))]
+        (is (thrown-with-msg? Exception
+                              #"clj-http: status 409"
+                              @first-resp))
+        (is (= 200
+               (:status @second-resp)))))))

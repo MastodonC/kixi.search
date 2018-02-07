@@ -104,72 +104,9 @@
 (def all-keys->kw
   (map-all-keys es-format->kw))
 
-(defn get-document-raw
-  [index-name doc-type conn id]
-  (esd/get conn
-           index-name
-           doc-type
-           id
-           {:preference "_primary"}))
-
-(defn get-document
-  [index-name doc-type conn id]
-  (-> (get-document-raw index-name doc-type conn id)
-      :_source
-      all-keys->kw))
-
-(defn get-document-key
-  [index-name doc-type conn id k]
-  (-> (get-document-raw index-name doc-type conn id)
-      :_source
-      (get (keyword (kw->es-format k)))
-      all-keys->kw))
-
-(def apply-attempts 10)
-
-(defn version-conflict?
-  [resp]
-  (some
-   #(= "version_conflict_engine_exception"
-       (:type %))
-   ((comp :root_cause :error) resp)))
-
 (defn error?
   [resp]
   (:error resp))
-
-(defn apply-func
-  ([index-name doc-type conn id f]
-   (loop [tries apply-attempts]
-     (let [curr (get-document-raw index-name doc-type conn id)
-           resp (esd/put conn
-                         index-name
-                         doc-type
-                         id
-                         (f curr)
-                         (merge put-opts
-                                (when (:_version curr)
-                                  {:version (:_version curr)})))]
-       (if (and (version-conflict? resp)
-                (pos? tries))
-         (recur (dec tries))
-         resp)))))
-
-(defn merge-data
-  [index-name doc-type conn id update]
-  (let [es-u (all-keys->es-format update)
-        r (apply-func
-           index-name
-           doc-type
-           conn
-           id
-           (fn [curr]
-             (merge-with merge
-                         (:_source curr)
-                         es-u)))]
-    (if (error? r)
-      (error "Unable to merge data for id: " id ". Trying to merge: " es-u ". Response: " r)
-      r)))
 
 (defn insert-data
   [index-name doc-type es-url id document]
@@ -178,27 +115,6 @@
                :as :json
                :headers {:content-type "application/json"}}))
 
-
-(defn update-in-data
-  [index-name doc-type conn id update-fn ks element]
-  (let [r (apply-func
-           index-name
-           doc-type
-           conn
-           id
-           (fn [curr]
-             (update-in (:_source curr) (all-keys->es-format-kws ks)
-                        #(vec (update-fn (set %) (all-keys->es-format-kws element))))))]
-    (if (error? r)
-      (error "Unable to cons data for id: " id ". Trying to update: " ks ". Response: " r)
-      r)))
-
-(defn connect
-  [host-ports cluster]
-  (esr/connect host-ports
-               (merge {}
-                      (when cluster
-                        {:cluster.name cluster}))))
 
 (def collapse-keys ["terms"])
 
@@ -293,10 +209,14 @@
        (mapv str->keyword)
        (clojure.string/join ".")))
 
+(defn get-by-id-raw-
+  [index-name doc-type es-url id & [exceptions]]
+  (client/get (str es-url "/" index-name "/" doc-type "/" id)
+              {:throw-exceptions exceptions}))
+
 (defn get-by-id
   [index-name doc-type es-url id]
-  (let [resp (client/get (str es-url "/" index-name "/" doc-type "/" id)
-                         {:throw-exceptions false})]
+  (let [resp (get-by-id-raw- index-name doc-type es-url id)]
     (when (= 200 (:status resp))
       (-> (:body resp)
           (json/parse-string keyword)
@@ -363,3 +283,20 @@
                                                     :tokenizer "standard"
                                                     :filter ["lowercase"
                                                              "autocomplete_filter"]}}}}}))
+
+(defn update-document-
+  [es-url index-name doc-type id previous-version updated]
+  (client/put (str es-url "/" index-name "/" doc-type "/" id)
+              {:body (json/generate-string (all-keys->es-format updated))
+               :query-params {:version previous-version}
+               :headers {:content-type "application/json"}}))
+
+(defn apply-func
+  "Attempts to apply the supplied function to current version. Does not retry on concurrent failure, leaving that to users. The event partition, single thread processing model, should prevent these occuring"
+  [index-name doc-type es-url id func]
+  (let [raw-resp (get-by-id-raw- index-name doc-type es-url id false)
+        decoded-resp (-> (:body raw-resp)
+                         (json/parse-string keyword)
+                         all-keys->kw)
+        new-value (func (:_source decoded-resp))]
+    (update-document- es-url index-name doc-type id (:_version decoded-resp) new-value)))

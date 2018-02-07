@@ -8,25 +8,14 @@
 
 (alias 'cs 'kixi.datastore.communication-specs)
 
-(def index-name "kixi-search_metadata")
+(def base-index-name "kixi-search_metadata")
 (def doc-type "metadata")
 
 (def local-es-url "http://localhost:9200")
 
-(defn insert-metadata
-  [es-url index-name metadata]
-  (es/insert-data
-   index-name
-   doc-type
-   es-url
-   (::md/id metadata)
-   metadata))
-
-
 (defmulti update-metadata-processor
-  (fn [conn update-event]
+  (fn [es-url index-name update-event]
     (::cs/file-metadata-update-type update-event)))
-
 
 (defmethod update-metadata-processor ::cs/file-metadata-created
   [es-url index-name update-event]
@@ -40,14 +29,15 @@
      metadata)))
 
 (defmethod update-metadata-processor ::cs/file-metadata-structural-validation-checked
-  [conn update-event]
+  [es-url index-name update-event]
   (info "Update: " update-event)
   )
 
 (defmethod update-metadata-processor ::cs/file-metadata-sharing-updated
-  [conn update-event]
+  [es-url index-name update-event]
   (info "Update Share: " update-event)
   )
+
 (defn dissoc-nonupdates
   [md]
   (reduce
@@ -58,8 +48,63 @@
    {}
    md))
 
+(defn- update?
+  [kw]
+  (and (qualified-keyword? kw)
+       (clojure.string/index-of (namespace kw) ".update")))
+
+(defn remove-update-ns
+  [kw]
+  (when (update? kw)
+    (keyword
+     (subs (namespace kw)
+           0
+           (clojure.string/index-of (namespace kw) ".update"))
+     (name kw))))
+
+(def update-cmds #{:set :conj :disj})
+
+(defn- update-cmd?
+  [x]
+  (and (map? x)
+       (= 1 (count (keys x)))
+       (update-cmds (first (keys x)))))
+
+(def first-key (comp first keys))
+(def first-val (comp first vals))
+
+(declare apply-updates)
+
+(defn apply-update
+  [current kw update-cmd]
+  (if (= :rm update-cmd)
+    (dissoc current
+            (remove-update-ns kw))
+    (let [update-fn (cond
+                      (update-cmd? update-cmd)
+                      (case (first-key update-cmd)
+                        :set (constantly (first-val update-cmd))
+                        :conj #(conj % (first-val update-cmd))
+                        :disj #(remove (set (vals update-cmd)) %))
+                      :else
+                      #(apply-updates %
+                                      update-cmd))]
+      (update current
+              (remove-update-ns kw)
+              update-fn))))
+
+(defn apply-updates
+  [current updates]
+  (reduce-kv
+   (fn [c kw update-cmd]
+     (if (update? kw)
+       (apply-update c kw update-cmd)
+       c))
+   current
+   updates))
+
 (defmethod update-metadata-processor ::cs/file-metadata-update
-  [conn update-event]
+  [es-url index-name update-event]
   (info "Update: " update-event)
   )
 
@@ -78,7 +123,7 @@
   (start [component]
     (if-not started
       (let [es-url (str protocol "://" host ":" port)
-            profile-index (str profile "-" index-name)]
+            profile-index (str profile "-" base-index-name)]
         (c/attach-event-handler! communications
                                  :kixi.search/metadata-update
                                  :kixi.datastore.file-metadata/updated
