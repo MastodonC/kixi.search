@@ -1,6 +1,7 @@
 (ns kixi.search.metadata.event-handlers.update-test
-  (:require [kixi.search.metadata.event-handlers.update :as sut]
-            [clojure.test :as t :refer [deftest is]]))
+  (:require [kixi.datastore.metadatastore :as md]
+            [kixi.search.metadata.event-handlers.update :as sut]
+            [clojure.test :as t :refer [deftest is testing]]))
 
 (deftest remove-update-ns-test
   (is (= :foo/bar
@@ -54,3 +55,29 @@
                               :bar.update/other {:set "string"}
                               :bar.update/also :rm
                               :bar.update/new {:set "string"}}}))))
+
+(deftest sharing-updater
+  (testing "Add novel"
+    (is (= {::md/sharing {:foo ["1"]}}
+           (sut/sharing-updater {}
+                                {::md/activity :foo
+                                 ::md/sharing-update ::md/sharing-conj
+                                 :kixi.group/id "1"}))))
+  (testing "Add addition"
+    (is (= {::md/sharing {:foo ["0" "1"]}}
+           (sut/sharing-updater {::md/sharing {:foo ["0"]}}
+                                {::md/activity :foo
+                                 ::md/sharing-update ::md/sharing-conj
+                                 :kixi.group/id "1"}))))
+  (testing "Remove empty"
+    (is (= {::md/sharing {:foo []}}
+           (sut/sharing-updater {}
+                                {::md/activity :foo
+                                 ::md/sharing-update ::md/sharing-disj
+                                 :kixi.group/id "1"}))))
+  (testing "Remove present"
+    (is (= {::md/sharing {:foo ["0"]}}
+           (sut/sharing-updater {::md/sharing {:foo ["0" "1"]}}
+                                {::md/activity :foo
+                                 ::md/sharing-update ::md/sharing-disj
+                                 :kixi.group/id "1"})))))
