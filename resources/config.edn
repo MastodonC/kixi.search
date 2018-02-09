@@ -3,7 +3,7 @@
                        :host #or [#env ELASTICSEARCH "localhost"]
                        :port 9200}
                :staging {:protocol "https"
-                         :host "vpc-staging-kixi-search-lg6tvmynyrm2ckwwfnntomrxs4.eu-central-1.es.amazonaws.com"
+                         :host "vpc-staging-kixi-s2e6qmw2ijwt6fuwde6gmg7x64.eu-central-1.es.amazonaws.com"
                          :port 443}}
  :logging {:level #profile {:default :info
                             :prod :error} ; e/o #{:trace :debug :info :warn :error :fatal :report}
