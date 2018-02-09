@@ -2,21 +2,14 @@
   (:require [cheshire.core :as json]
             [clj-http.client :as client]
             [clojure.spec.alpha :as spec]
-            [clojurewerkz.elastisch.native :as esr]
-            [clojurewerkz.elastisch.native.document :as esd]
             [com.rpl.specter :as specter]
             [environ.core :refer [env]]
             [joplin.repl :as jrepl]
+            [kixi.datastore.metadatastore :as md]
             [kixi.search.query-model :as model]
             [kixi.search.time :as t]
             [medley :refer [map-vals]]
             [taoensso.timbre :as timbre :refer [error info]]))
-
-(def put-opts (merge {:consistency (env :elasticsearch-consistency "default")
-                      :replication (env :elasticsearch-replication "default")
-                      :refresh (Boolean/parseBoolean (env :elasticsearch-refresh "false"))}
-                     (when-let [s  (env :elasticsearch-wait-for-active-shards nil)]
-                       {:wait-for-active-shards s})))
 
 (defn migrate
   [env migration-conf]
@@ -115,7 +108,6 @@
                :as :json
                :headers {:content-type "application/json"}}))
 
-
 (def collapse-keys ["terms"])
 
 (defn collapse-nesting
@@ -176,14 +168,15 @@
                      query))]
     (merge {:query
             {:bool
-             (merge {:filter (merge (when-let [contains (select-nested
-                                                         flat-query
-                                                         "contains")]
-                                      {:terms contains})
-                                    (when-let [equals (select-nested
-                                                       flat-query
-                                                       "equals")]
-                                      {:term equals}))}
+             (merge {:filter (merge-with merge
+                                         (when-let [contains (select-nested
+                                                              flat-query
+                                                              "contains")]
+                                           {:terms contains})
+                                         (when-let [equals (select-nested
+                                                            flat-query
+                                                            "equals")]
+                                           {:term equals}))}
                     (when-let [matchers (select-nested
                                          flat-query
                                          "match")]
@@ -210,18 +203,28 @@
        (clojure.string/join ".")))
 
 (defn get-by-id-raw-
-  [index-name doc-type es-url id & [exceptions]]
+  [index-name doc-type es-url id exceptions]
   (client/get (str es-url "/" index-name "/" doc-type "/" id)
               {:throw-exceptions exceptions}))
 
+(defn ensure-set
+  [x]
+  (if (coll? x)
+    (set x)
+    (hash-set x)))
+
 (defn get-by-id
-  [index-name doc-type es-url id]
-  (let [resp (get-by-id-raw- index-name doc-type es-url id)]
+  [index-name doc-type es-url id groups]
+  (let [resp (get-by-id-raw- index-name doc-type es-url id false)]
     (when (= 200 (:status resp))
-      (-> (:body resp)
-          (json/parse-string keyword)
-          :_source
-          all-keys->kw))))
+      (let [item (-> (:body resp)
+                     (json/parse-string keyword)
+                     :_source
+                     all-keys->kw)]
+        (when-not (empty?
+                   (clojure.set/intersection (ensure-set groups)
+                                             (set (get-in item [::md/sharing ::md/meta-read]))))
+          item)))))
 
 (defn search
   [es-url index-name doc-type query]

@@ -38,15 +38,17 @@
           (clojure.string/split #",")
           vec-if-not))
 
-(defn prn-t
-  [x]
-  (prn x)
-  x)
-
 (defn file-meta
   [query]
-  (fn [& args]
-    (prn args)))
+  (fn [request]
+    (let [meta-id (get-in request [:params :id])
+          user-groups (request->user-groups request)
+          meta (query/find-by-id query
+                                 meta-id
+                                 user-groups)]
+      (if meta
+        (response meta)
+        {:status 404}))))
 
 (defn namespaced-keyword
   [s]
@@ -79,29 +81,42 @@
 
 (defn parse-nested-vectors
   [unparsed]
-  (specter/transform
-   [EVERYTHING]
-   namespaced-keyword
-   unparsed))
+  (when unparsed
+    (specter/transform
+     [EVERYTHING]
+     namespaced-keyword
+     unparsed)))
+
+(defn update-present
+  [m k f]
+  (if (k m)
+    (update m k f)
+    m))
 
 (defn metadata-query
   [query]
   (fn [request]
-    (let [query-raw (update (json/parse-string (body-string request)
-                                               namespaced-keyword)
-                            :fields parse-nested-vectors
-                            :sort-by parse-nested-vectors)
+    (let [query-raw (-> (json/parse-string (body-string request)
+                                           namespaced-keyword)
+                        (update-present :fields parse-nested-vectors)
+                        (update-present :sort-by parse-nested-vectors))
           conformed-query (spec/conform ::model/query-map
                                         query-raw)]
       ;;TODO user-groups header must be present
-      (if-not (= ::spec/invalid conformed-query)
-        (response
-         (query/find-by-query query
-                              (update-in (or (:query (apply hash-map conformed-query)) {})
-                                         [:query ::msq/sharing]
-                                         (partial ensure-group-access (request->user-groups request)))))
-        {:status 400
-         :body (spec/explain-data ::model/query-map query-raw)}))))
+      (cond (= ::spec/invalid conformed-query)
+            {:status 400
+             :body (spec/explain-data ::model/query-map query-raw)}
+
+            (empty? (request->user-groups request))
+            {:status 400
+             :body {:reason "no-user-groups"}}
+
+            :else
+            (response
+             (query/find-by-query query
+                                  (update-in (or (:query (apply hash-map conformed-query)) {})
+                                             [:query ::msq/sharing]
+                                             (partial ensure-group-access (request->user-groups request)))))))))
 
 (defn routes
   "Create the URI route structure for our application."
@@ -115,7 +130,7 @@
     [true (constantly (not-found nil))]]])
 
 (defrecord Web
-    [port ^org.eclipse.jetty.server.Server jetty query]
+    [port ^org.eclipse.jetty.server.Server jetty metadata-query]
   component/Lifecycle
   (start [component]
     (if-not jetty
@@ -125,7 +140,7 @@
                :jetty
                (run-jetty
                 ;; TODO Add json middleware
-                (->> query
+                (->> metadata-query
                      routes
                      make-handler
                      wrap-json-response)

@@ -37,7 +37,7 @@
    :index-manager (index-manager/map->IndexManager {})
 
    :metadata-query (metadata-query/map->ElasticSearch {})
-   ;;   :metadata-update (metadata-update/map->MetadataCreate {})
+   :metadata-update (metadata-update/map->MetadataCreate {})
 
    :repl (repl/map->ReplServer {})
    :web (web/map->Web {})))

@@ -33,12 +33,13 @@
 
 (defn sharing-updater
   [current update-event]
-  (let [group-id (:kixi.group/id update-event)]
+  (let [group-id (:kixi.group/id update-event)
+        update-fn (case (::md/sharing-update update-event)
+                    ::md/sharing-conj #(into [] (cons group-id %))
+                    ::md/sharing-disj #(into [] (remove #{group-id} %)))]
     (update-in current
                [::md/sharing (::md/activity update-event)]
-               (case (::md/sharing-update update-event)
-                 ::md/sharing-conj #(conj % group-id)
-                 ::md/sharing-disj #(into [] (remove #{group-id} %))))))
+               update-fn)))
 
 (defmethod update-metadata-processor ::cs/file-metadata-sharing-updated
   [es-url index-name update-event]

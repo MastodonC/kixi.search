@@ -64,7 +64,7 @@
                                  ::md/sharing-update ::md/sharing-conj
                                  :kixi.group/id "1"}))))
   (testing "Add addition"
-    (is (= {::md/sharing {:foo ["0" "1"]}}
+    (is (= {::md/sharing {:foo ["1" "0"]}}
            (sut/sharing-updater {::md/sharing {:foo ["0"]}}
                                 {::md/activity :foo
                                  ::md/sharing-update ::md/sharing-conj

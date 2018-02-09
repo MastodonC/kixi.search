@@ -66,7 +66,9 @@ Creates:
   (map-of #{:match} :kixi.datastore.metadatastore/name))")
 (def metadata->query-actions
   {::ms/name #{:match}
-   ::ms/sharing {::ms/meta-read #{:contains}}
+   ::ms/sharing {::ms/meta-read #{:contains}
+                 ::ms/meta-update #{:contains}
+                 ::ms/bundle-add #{:contains}}
    ::ms/provenance {::ms/created #{:gt :gte :lt :lte}}})
 
 (create-query-specs metadata->query-actions)

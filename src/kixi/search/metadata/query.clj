@@ -6,24 +6,24 @@
             [taoensso.timbre :as timbre :refer [info]]))
 
 (defprotocol Query
-  (find-by-id- [this id])
-  (find-by-query- [this query-map from-index cnt sort-by sort-order]))
+  (find-by-id- [this id groups])
+  (find-by-query- [this query-map]))
 
 (s/def ::query
   (let [ex #(ex-info "Use stubbed fn version." {:fn %})]
     (s/with-gen
       (partial satisfies? Query)
       #(gen/return (reify Query
-                     (find-by-id- [this id] (throw (ex "id")))
-                     (find-by-query- [this query-map from-index cnt sort-by sort-order] (throw (ex "query"))))))))
+                     (find-by-id- [this id groups] (throw (ex "id")))
+                     (find-by-query- [this query-map] (throw (ex "query"))))))))
 
 (defn find-by-id
-  [impl id]
-  (find-by-id- impl id))
+  [impl id groups]
+  (find-by-id- impl id groups))
 
 (defn find-by-query
-  [impl query-map from-index cnt sort-by sort-order]
-  (find-by-query- impl query-map from-index cnt sort-by sort-order))
+  [impl query-map]
+  (find-by-query- impl query-map))
 
 (def sfirst (comp second first))
 
@@ -36,31 +36,27 @@
 
   Query
   (find-by-id-
-    [this id]
-    (es/get-by-id profile-index doc-type es-url id))
+    [this id groups]
+    (es/get-by-id profile-index doc-type es-url id groups))
 
   (find-by-query-
-    [this query-map from-index cnt sort-by sort-order]
+    [this query-map]
     (es/search-data profile-index
                     doc-type
                     es-url
-                    query-map
-                    from-index
-                    cnt
-                    sort-by
-                    sort-order))
+                    query-map))
 
   component/Lifecycle
   (start [component]
     (if-not es-url
       (do
-        (info "Starting File Metadata ElasticSearch Store")
+        (info "Starting File Metadata Query")
         (assoc component
                :es-url (str protocol "://" host ":" port)
                :profile-index (str profile "-" index-name)))
       component))
   (stop [component]
     (if es-url
-      (do (info "Destroying File Metadata ElasticSearch Store")
+      (do (info "Stopping File Metadata Query")
           (dissoc component :es-url))
       component)))

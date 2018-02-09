@@ -23,7 +23,7 @@
                                            :host host
                                            :port port
                                            :profile profile
-                                           :migration-index "kixi_search-migrations"}}
+                                           :migration-index (str profile "-kixi_search-migrations")}}
                          :environments {:env [{:db :es6
                                                :migrator :migrator}]}}]
         (info "Starting Elastic Search Index Manager")

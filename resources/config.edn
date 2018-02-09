@@ -31,7 +31,7 @@
  :index-manager ^:ref [:es]
 
  :metadata-query ^:ref [:es]
- :metadata-create ^:ref [:es]
+ :metadata-update ^:ref [:es]
 
  :communications #profile  {:local {:coreasync {:app "kixi.search"
                                                 :metrics-level :NONE}}

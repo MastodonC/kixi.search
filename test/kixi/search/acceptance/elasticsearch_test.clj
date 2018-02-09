@@ -1,4 +1,4 @@
-(ns kixi.acceptance.elasticsearch-test
+(ns kixi.search.acceptance.elasticsearch-test
   (:require [cheshire.core :as json]
             [clj-time.core :as t]
             [clojure.spec.test.alpha :as spec-test]
@@ -14,8 +14,6 @@
             [taoensso.timbre :as timbre :refer [error]]
             [kixi.search.elasticsearch.index-manager :as index-manager]
             [com.stuartsierra.component :as component]))
-
-(alias 'kixi.datastore.metadatastore.query 'mq)
 
 (timbre/set-level! :warn)
 
@@ -50,13 +48,13 @@
   {:protocol (env :es-protocol "http")
    :host (env :es-host "localhost")
    :port (env :es-port "9200")
-   :profile "test"})
+   :profile "local"})
 
 (def es-url
   (elasticsearch-url es-config))
 
 (def profile-index
-  (str (:profile es-config) "-" "kixi-search_metadata"))
+  (str (:profile es-config) "-kixi-search_metadata"))
 
 (def get-by-id (partial sut/get-by-id profile-index mc/doc-type es-url))
 (def get-by-id-raw- (partial sut/get-by-id-raw- profile-index mc/doc-type es-url))
@@ -113,14 +111,24 @@
         data (file-event uid)]
     (insert-data uid data)
     (wait-is= data
-              (get-by-id uid))))
+              (get-by-id uid uid))
+    (wait-is= nil
+              (get-by-id uid (uuid)))))
 
 (deftest search-by-id
   (let [uid (uuid)
         data (file-event uid)]
     (insert-data uid data)
     (wait-is= data
-              ((comp first :items) (search-data {:query {::md/id {:equals uid}}})))    ))
+              ((comp first :items) (search-data {:query {::md/id {:equals uid}}})))))
+
+(deftest search-by-name-and-sharing
+  (let [uid (uuid)
+        data (file-event uid)]
+    (insert-data uid data)
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))))
 
 (deftest search-by-id-filter-fields
   (testing "Top level field"
@@ -218,7 +226,7 @@
       (wait-is= (assoc data :new-field 1)
                 ((comp first :items) (search-data {:query {::md/id {:equals uid}}})))
       (wait-is= 2
-                (-> (get-by-id-raw- uid)
+                (-> (get-by-id-raw- uid true)
                     :body
                     (json/parse-string keyword)
                     :_version))))
@@ -228,7 +236,7 @@
           _ (insert-data uid data)]
       (wait-is= data
                 ((comp first :items) (search-data {:query {::md/id {:equals uid}}})))
-      (let [first-resp (future (apply-func uid #(do (Thread/sleep 20)
+      (let [first-resp (future (apply-func uid #(do (Thread/sleep 1000)
                                                     (assoc % :first 1))))
             second-resp (future (apply-func uid #(assoc % :second 2)))]
         (is (thrown-with-msg? Exception
