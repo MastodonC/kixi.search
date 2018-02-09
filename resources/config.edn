@@ -3,7 +3,7 @@
                        :host #or [#env ELASTICSEARCH "localhost"]
                        :port 9200}
                :staging {:protocol "https"
-                         :host "vpc-staging-kixi-search-lg6tvmynyrm2ckwwfnntomrxs4.eu-central-1.es.amazonaws.com"
+                         :host "vpc-staging-kixi-s2e6qmw2ijwt6fuwde6gmg7x64.eu-central-1.es.amazonaws.com"
                          :port 443}}
  :logging {:level #profile {:default :info
                             :prod :error} ; e/o #{:trace :debug :info :warn :error :fatal :report}
@@ -39,8 +39,7 @@
                                                       :endpoint "kinesis.eu-central-1.amazonaws.com"
                                                       :region-name "eu-central-1"
                                                       :dynamodb-endpoint #or [#env DYNAMODB "http://localhost:8000"]
-                                                      :streams {:event #or [#env EVENT_STREAM  "kixi-search-local-event"]
-                                                                :command #or [#env COMMAND_STREAM "kixi-search-local-command"]}
+                                                      :streams {:event #or [#env EVENT_STREAM  "kixi-search-local-event"]}
                                                       :metrics-level :NONE
                                                       :initial-lease-table-read-capacity 1
                                                       :initial-lease-table-write-capacity 1
@@ -55,8 +54,7 @@
                                                 :dynamodb-endpoint "dynamodb.eu-central-1.amazonaws.com"
                                                 :initial-lease-table-read-capacity 1
                                                 :initial-lease-table-write-capacity 1
-                                                :streams {:event "staging-witan-event"
-                                                          :command "staging-witan-command"}
+                                                :streams {:event "staging-witan-event"}
                                         ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
                                                 :metrics-level :NONE
                                                 }}
@@ -66,8 +64,7 @@
                                                             :dynamodb-endpoint "dynamodb.eu-central-1.amazonaws.com"
                                                             :initial-lease-table-read-capacity 1
                                                             :initial-lease-table-write-capacity 1
-                                                            :streams {:event "staging-witan-event"
-                                                                      :command "staging-witan-command"}
+                                                            :streams {:event "staging-witan-event"}
                                                             :teardown-dynamodb true
                                                             :metrics-level :NONE
                                         ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
@@ -78,8 +75,7 @@
                                              :dynamodb-endpoint "dynamodb.eu-west-1.amazonaws.com"
                                              :initial-lease-table-read-capacity 2
                                              :initial-lease-table-write-capacity 2
-                                             :streams {:event "prod-witan-event"
-                                                       :command "prod-witan-command"}
+                                             :streams {:event "prod-witan-event"}
                                              :metrics-level :NONE
                                         ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
                                              }}}
