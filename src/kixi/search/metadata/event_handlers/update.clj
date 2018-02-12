@@ -89,6 +89,12 @@
 
 (declare apply-updates)
 
+(defn- to-seq
+  [x]
+  (if (coll? x)
+    x
+    (vector x)))
+
 (defn apply-update
   [current kw update-cmd]
   (if (= :rm update-cmd)
@@ -98,8 +104,8 @@
                       (update-cmd? update-cmd)
                       (case (first-key update-cmd)
                         :set (constantly (first-val update-cmd))
-                        :conj #(conj % (first-val update-cmd))
-                        :disj #(remove (set (vals update-cmd)) %))
+                        :conj #(distinct (conj (to-seq %) (first-val update-cmd)))
+                        :disj #(remove (set (vals update-cmd)) (to-seq %)))
                       :else
                       #(apply-updates %
                                       update-cmd))]
