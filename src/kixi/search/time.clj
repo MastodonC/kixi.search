@@ -4,4 +4,5 @@
 
 (def format :basic-date-time)
 
-(def es-format (clojure.string/replace (name format) "-" "_"))
+(def es-format
+  (str (clojure.string/replace (name format) "-" "_") "||" "yyyyMMdd"))
