@@ -43,8 +43,7 @@
   [{:keys [endpoint dynamodb-endpoint streams
            profile app teardown-kinesis teardown-dynamodb]}]
   (when teardown-dynamodb
-    (delete-tables dynamodb-endpoint [(kinesis/event-worker-app-name app profile)
-                                      (kinesis/command-worker-app-name app profile)]))
+    (delete-tables dynamodb-endpoint [(kinesis/event-worker-app-name app profile)]))
   (when teardown-kinesis
     (kinesis/delete-streams! endpoint (vals streams))))
 
