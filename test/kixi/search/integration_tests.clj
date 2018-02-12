@@ -126,7 +126,7 @@
                       :kixi.datastore.file-metadata/updated
                       "1.0.0"
                       payload
-                      {:partition-key id}))
+                      {:kixi.comms.event/partition-key id}))
 
 (deftest create-update-search
   (let [comms (:communications @user/system)
