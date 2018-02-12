@@ -6,7 +6,7 @@
                          :host "vpc-staging-kixi-s2e6qmw2ijwt6fuwde6gmg7x64.eu-central-1.es.amazonaws.com"
                          :port 443}
                :prod  {:protocol "https"
-                       :host "https://vpc-prod-kixi-qqdthzvtvt3nlcggx3bzxlzpdi.eu-west-1.es.amazonaws.com"
+                       :host "vpc-prod-kixi-qqdthzvtvt3nlcggx3bzxlzpdi.eu-west-1.es.amazonaws.com"
                        :port 443}}
  :logging {:level #profile {:default :info
                             :prod :error} ; e/o #{:trace :debug :info :warn :error :fatal :report}
