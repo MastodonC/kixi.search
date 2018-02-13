@@ -84,7 +84,7 @@
                                 :expected ~expected :actual t#})))  )
 
 (def wait-tries (Integer/parseInt (env :wait-tries "200")))
-(def wait-per-try (Integer/parseInt (env :wait-per-try "10")))
+(def wait-per-try (Integer/parseInt (env :wait-per-try "20")))
 
 (defn wait-for-pred
   ([p]

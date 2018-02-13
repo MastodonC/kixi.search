@@ -17,7 +17,7 @@
 (alias 'cs 'kixi.datastore.communication-specs)
 (alias 'mdq 'kixi.datastore.metadatastore.query)
 (alias 'mdu 'kixi.datastore.metadatastore.update)
-
+(alias 'event 'kixi.event)
 
 (def search-host (env :search-host "localhost"))
 (def search-port (Integer/parseInt (env :search-port "8091")))
@@ -131,25 +131,25 @@
   (let [comms (:communications @user/system)
         uid (uuid)
         send-event (partial send-event comms uid)
-        create-metadata-payload (create-metadata-payload uid)]
+        metadata-payload (create-metadata-payload uid)]
 
     (testing "Metadata creatable and searchable"
-      (send-event create-metadata-payload)
-      (wait-is= (::md/file-metadata create-metadata-payload)
+      (send-event metadata-payload)
+      (wait-is= (::md/file-metadata metadata-payload)
                 (get-metadata-by-id uid))
-      (wait-is= (::md/file-metadata create-metadata-payload)
+      (wait-is= (::md/file-metadata metadata-payload)
                 (first-item (search-metadata uid "Test File"))))
 
     (testing "Metadata modifiable"
       (send-event {::cs/file-metadata-update-type ::cs/file-metadata-update
                    ::md/id uid
                    ::mdu/name {:set "Updated Name"}})
-      (wait-is= (assoc (::md/file-metadata create-metadata-payload)
+      (wait-is= (assoc (::md/file-metadata metadata-payload)
                        ::md/name "Updated Name")
                 (first-item (search-metadata uid "Updated Name"))))
 
     (let [new-group (uuid)
-          updated-metadata (-> (::md/file-metadata create-metadata-payload)
+          updated-metadata (-> (::md/file-metadata metadata-payload)
                                (assoc ::md/name "Updated Name")
                                (update-in [::md/sharing ::md/meta-read]
                                           #(into [] (cons new-group %))))]
@@ -181,3 +181,50 @@
                   (get-metadata-by-id uid new-group))
         (always-is= nil
                     (get-metadata-by-id uid uid))))))
+
+
+;; bundles
+
+(defn create-bundle-payload
+  [user-id bundled-ids & [overrides]]
+  (merge-with merge
+              {::cs/file-metadata-update-type ::cs/file-metadata-created
+               ::md/file-metadata {::md/type "bundle"
+                                   ::md/bundle-type "datapack"
+                                   ::md/name "Test Bundle"
+                                   ::md/file-type "csv"
+                                   ::md/id user-id
+                                   ::md/bundle-ids bundled-ids
+                                   ::md/provenance {::md/source "upload"
+                                                    :kixi.user/id user-id
+                                                    ::md/created (conformers/time-unparser (t/now))}
+                                   ::md/size-bytes 10
+                                   ::md/sharing {::md/file-read [user-id]
+                                                 ::md/meta-update [user-id]
+                                                 ::md/meta-read [user-id]}}}
+              (or overrides {})))
+
+(defn delete-bundle
+  [comms id]
+  (kcomms/send-valid-event! comms
+                            {::event/type :kixi.datastore/bundle-deleted
+                             ::event/version "1.0.0"
+                             ::md/id id}
+                            {:kixi.comms.event/partition-key id}))
+
+(deftest create-bundle-search
+  (let [comms (:communications @user/system)
+        uid (uuid)
+        bundled-ids (into [] (repeatedly 3 uuid))
+        send-event (partial send-event comms uid)
+        bundle-payload (create-bundle-payload uid bundled-ids)]
+    (testing "Bundle creatable and searchable"
+      (send-event create-bundle-payload)
+      (wait-is= (::md/file-metadata bundle-payload)
+                (get-metadata-by-id uid))
+      (wait-is= (::md/file-metadata bundle-payload)
+                (first-item (search-metadata uid "Test Bundle"))))
+    (testing "Delete bundle"
+      (delete-bundle comms uid)
+      (wait-is= nil
+                (first-item (search-metadata uid "Test Bundle"))))))

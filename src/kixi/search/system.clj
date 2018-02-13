@@ -8,6 +8,7 @@
             [kixi.log :as kixi-log]
             [kixi.search.elasticsearch.index-manager :as index-manager]
             [kixi.search.metadata.event-handlers.update :as metadata-update]
+            [kixi.search.metadata.event-handlers.bundle-delete :as bundle-delete]
             [kixi.search.metadata.query :as metadata-query]
             [kixi.search.repl :as repl]
             [kixi.search.web :as web]
@@ -25,6 +26,7 @@
    :repl []
    :metadata-query []
    :metadata-update [:communications]
+   :metadata-bundle-delete [:communications]
    :web [:metadata-query]})
 
 (defn new-system-map
@@ -38,6 +40,7 @@
 
    :metadata-query (metadata-query/map->ElasticSearch {})
    :metadata-update (metadata-update/map->MetadataCreate {})
+   :metadata-bundle-delete (bundle-delete/map->MetadataBundleDelete {})
 
    :repl (repl/map->ReplServer {})
    :web (web/map->Web {})))

@@ -44,4 +44,4 @@
          (mapv sut/sort-by->collapsed-es-sorts
                [{:provenance {:created :desc}}
                 :name
-                {:provenance :created}]))) )
+                {:provenance :created}]))))
