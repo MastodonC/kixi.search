@@ -180,7 +180,15 @@
                     (when-let [matchers (select-nested
                                          flat-query
                                          "match")]
-                      {:must {:match matchers}}))}}
+                      {:must {:match matchers}})
+                    (when-let [exists (select-nested
+                                        flat-query
+                                        "exists")]
+                      (let [field-name (first (keys exists))
+                            pred (exists field-name)]
+                        (if pred
+                            {:must {:exists {:field field-name}}}
+                            {:must_not {:exists {:field field-name}}}))))}}
            (when-not (empty? fields)
              {:_source (mapv field-vectors->collapsed-es-fields fields)})
            (when-not (empty? sort-by)

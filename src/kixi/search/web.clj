@@ -102,7 +102,6 @@
                         (update-present :sort-by parse-nested-vectors))
           conformed-query (spec/conform ::model/query-map
                                         query-raw)]
-      ;;TODO user-groups header must be present
       (cond (= ::spec/invalid conformed-query)
             {:status 400
              :body (spec/explain-data ::model/query-map query-raw)}
@@ -114,9 +113,11 @@
             :else
             (response
              (query/find-by-query query
-                                  (update-in (or (:query (apply hash-map conformed-query)) {})
-                                             [:query ::msq/sharing]
-                                             (partial ensure-group-access (request->user-groups request)))))))))
+                                  (merge-with merge
+                                    {:query {::msq/tombstone {:exists false}}}
+                                    (update-in (or (:query (apply hash-map conformed-query)) {})
+                                               [:query ::msq/sharing]
+                                               (partial ensure-group-access (request->user-groups request))))))))))
 
 (defn routes
   "Create the URI route structure for our application."
