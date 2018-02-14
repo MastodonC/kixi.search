@@ -219,7 +219,7 @@
         send-event (partial send-event comms uid)
         bundle-payload (create-bundle-payload uid bundled-ids)]
     (testing "Bundle creatable and searchable"
-      (send-event create-bundle-payload)
+      (send-event bundle-payload)
       (wait-is= (::md/file-metadata bundle-payload)
                 (get-metadata-by-id uid))
       (wait-is= (::md/file-metadata bundle-payload)
