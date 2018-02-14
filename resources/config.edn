@@ -36,6 +36,8 @@
  :metadata-query ^:ref [:es]
  :metadata-update ^:ref [:es]
  :metadata-bundle-delete ^:ref [:es]
+ :metadata-bundle-add-files ^:ref [:es]
+ :metadata-bundle-remove-files ^:ref [:es]
 
  :communications #profile  {:local {:coreasync {:app "kixi.search"
                                                 :metrics-level :NONE}}

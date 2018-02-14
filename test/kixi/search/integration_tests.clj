@@ -217,6 +217,32 @@
                              ::md/id id}
                             {:partition-key id}))
 
+(defn add-to-bundle
+  [comms id file-ids]
+  (kcomms/send-valid-event! comms
+                            {:kixi.message/type :event
+                             ::event/type :kixi.datastore/files-added-to-bundle
+                             ::event/version "1.0.0"
+                             ::command/id (uuid)
+                             :kixi/user {:kixi.user/id id
+                                         :kixi.user/groups [id]}
+                             ::md/id id
+                             ::md/bundled-ids file-ids}
+                            {:partition-key id}))
+
+(defn remove-from-bundle
+  [comms id file-ids]
+  (kcomms/send-valid-event! comms
+                            {:kixi.message/type :event
+                             ::event/type :kixi.datastore/files-removed-from-bundle
+                             ::event/version "1.0.0"
+                             ::command/id (uuid)
+                             :kixi/user {:kixi.user/id id
+                                         :kixi.user/groups [id]}
+                             ::md/id id
+                             ::md/bundled-ids file-ids}
+                            {:partition-key id}))
+
 (deftest create-bundle-search
   (let [comms (:communications @user/system)
         uid (uuid)
@@ -229,10 +255,21 @@
                 (get-metadata-by-id uid))
       (wait-is= (::md/file-metadata bundle-payload)
                 (first-item (search-metadata uid "Test Bundle"))))
+    (let [new-ids [(uuid) (uuid)]
+          remove-ids (take 2 bundled-ids)]
+      (testing "Add files to bundle"
+        (add-to-bundle comms uid new-ids)
+        (wait-is= (update (::md/file-metadata bundle-payload)
+                          ::md/bundle-ids
+                          #(into [] (concat % new-ids)))
+                  (first-item (search-metadata uid "Test Bundle"))))
 
-    (testing "Add file to bundle")
-
-    (testing "Remove file from bundle")
+      (testing "Remove files from bundle"
+        (remove-from-bundle comms uid remove-ids)
+        (wait-is= (update (::md/file-metadata bundle-payload)
+                          ::md/bundle-ids
+                          #(into [] (concat (remove (set remove-ids) %) new-ids)))
+                  (first-item (search-metadata uid "Test Bundle")))))
 
     (testing "Delete bundle"
       (delete-bundle comms uid)
