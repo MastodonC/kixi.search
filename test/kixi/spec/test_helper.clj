@@ -81,10 +81,10 @@
                                         :expected exp# :actual act#})))
      (catch Throwable t#
        (clojure.test/do-report {:type :error :message "Exception diffing"
-                                :expected ~expected :actual t#})))  )
+                                :expected ~expected :actual t#}))))
 
 (def wait-tries (Integer/parseInt (env :wait-tries "200")))
-(def wait-per-try (Integer/parseInt (env :wait-per-try "20")))
+(def wait-per-try (Integer/parseInt (env :wait-per-try "10")))
 
 (defn wait-for-pred
   ([p]
