@@ -256,7 +256,7 @@
               ((comp first :items) (search-data {:query {::md/id {:equals uid}
                                                          ::md/tombstone {:exists true}}})))))
 
-(deftest search-by-id-not-tombstoned
+(deftest search-by-id-tombstoned
   (let [uid (uuid)
         data (file-event uid {::md/tombstone true})]
     (insert-data uid data)
@@ -280,7 +280,7 @@
                                                          ::md/name {:match "Test File"}
                                                          ::md/sharing {::md/meta-read {:contains [uid]}}}})))))
 
-(deftest search-by-name-and-sharing-not-tombstoned
+(deftest search-by-name-and-sharing-tombstoned
   (let [uid (uuid)
         data (file-event uid {::md/tombstone true})]
     (insert-data uid data)
@@ -291,4 +291,6 @@
     (wait-is= nil
               ((comp first :items) (search-data {:query {::md/tombstone {:exists false}
                                                          ::md/name {:match "Test File"}
-                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))))
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))
+    (wait-is= nil
+              (get-by-id uid uid))))

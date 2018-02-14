@@ -11,6 +11,7 @@
             [kixi.search.metadata.event-handlers.bundle-delete :as bundle-delete]
             [kixi.search.metadata.event-handlers.bundle-file-add :as bundle-add]
             [kixi.search.metadata.event-handlers.bundle-file-remove :as bundle-remove]
+            [kixi.search.metadata.event-handlers.file-delete :as file-delete]
             [kixi.search.metadata.query :as metadata-query]
             [kixi.search.repl :as repl]
             [kixi.search.web :as web]
@@ -31,6 +32,7 @@
    :metadata-bundle-delete [:communications]
    :metadata-bundle-add-files [:communications]
    :metadata-bundle-remove-files [:communications]
+   :metadata-file-delete [:communications]
    :web [:metadata-query]})
 
 (defn new-system-map
@@ -47,6 +49,7 @@
    :metadata-bundle-delete (bundle-delete/map->MetadataBundleDelete {})
    :metadata-bundle-add-files (bundle-add/map->MetadataBundleFileAdd {})
    :metadata-bundle-remove-files (bundle-remove/map->MetadataBundleFileRemove {})
+   :metadata-file-delete (file-delete/map->MetadataFileDelete {})
 
    :repl (repl/map->ReplServer {})
    :web (web/map->Web {})))

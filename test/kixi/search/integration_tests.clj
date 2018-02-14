@@ -128,6 +128,18 @@
                       payload
                       {:kixi.comms.event/partition-key id}))
 
+(defn delete-file
+  [comms id]
+  (kcomms/send-valid-event! comms
+                            {:kixi.message/type :event
+                             ::event/type :kixi.datastore/file-deleted
+                             ::event/version "1.0.0"
+                             ::command/id (uuid)
+                             :kixi/user {:kixi.user/id id
+                                         :kixi.user/groups [id]}
+                             ::md/id id}
+                            {:partition-key id}))
+
 (deftest create-update-search
   (let [comms (:communications @user/system)
         uid (uuid)
@@ -181,8 +193,12 @@
                              #(into [] (remove #{uid} %)))
                   (get-metadata-by-id uid new-group))
         (always-is= nil
-                    (get-metadata-by-id uid uid))))))
+                    (get-metadata-by-id uid uid))))
 
+    (testing "We can not retrieve a deleted (tombstoned) file"
+        (delete-file comms uid)
+        (wait-is= nil
+                  (get-metadata-by-id uid)))))
 
 ;; bundles
 
@@ -271,7 +287,7 @@
                           #(into [] (concat (remove (set remove-ids) %) new-ids)))
                   (first-item (search-metadata uid "Test Bundle")))))
 
-    (testing "Delete bundle"
+    (testing "We can not retrieve a deleted (tombstoned) bundle"
       (delete-bundle comms uid)
       (wait-is= nil
                 (first-item (search-metadata uid "Test Bundle"))))))

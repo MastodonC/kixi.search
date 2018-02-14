@@ -229,9 +229,10 @@
                      (json/parse-string keyword)
                      :_source
                      all-keys->kw)]
-        (when-not (empty?
-                   (clojure.set/intersection (ensure-set groups)
-                                             (set (get-in item [::md/sharing ::md/meta-read]))))
+        (when (and (not (empty?
+                          (clojure.set/intersection (ensure-set groups)
+                                                    (set (get-in item [::md/sharing ::md/meta-read])))))
+                   (not (::md/tombstone item)))
           item)))))
 
 (defn search
