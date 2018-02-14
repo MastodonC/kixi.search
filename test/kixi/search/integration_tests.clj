@@ -17,7 +17,8 @@
 (alias 'cs 'kixi.datastore.communication-specs)
 (alias 'mdq 'kixi.datastore.metadatastore.query)
 (alias 'mdu 'kixi.datastore.metadatastore.update)
-
+(alias 'event 'kixi.event)
+(alias 'command 'kixi.command)
 
 (def search-host (env :search-host "localhost"))
 (def search-port (Integer/parseInt (env :search-port "8091")))
@@ -127,29 +128,41 @@
                       payload
                       {:kixi.comms.event/partition-key id}))
 
+(defn delete-file
+  [comms id]
+  (kcomms/send-valid-event! comms
+                            {:kixi.message/type :event
+                             ::event/type :kixi.datastore/file-deleted
+                             ::event/version "1.0.0"
+                             ::command/id (uuid)
+                             :kixi/user {:kixi.user/id id
+                                         :kixi.user/groups [id]}
+                             ::md/id id}
+                            {:partition-key id}))
+
 (deftest create-update-search
   (let [comms (:communications @user/system)
         uid (uuid)
         send-event (partial send-event comms uid)
-        create-metadata-payload (create-metadata-payload uid)]
+        metadata-payload (create-metadata-payload uid)]
 
     (testing "Metadata creatable and searchable"
-      (send-event create-metadata-payload)
-      (wait-is= (::md/file-metadata create-metadata-payload)
+      (send-event metadata-payload)
+      (wait-is= (::md/file-metadata metadata-payload)
                 (get-metadata-by-id uid))
-      (wait-is= (::md/file-metadata create-metadata-payload)
+      (wait-is= (::md/file-metadata metadata-payload)
                 (first-item (search-metadata uid "Test File"))))
 
     (testing "Metadata modifiable"
       (send-event {::cs/file-metadata-update-type ::cs/file-metadata-update
                    ::md/id uid
                    ::mdu/name {:set "Updated Name"}})
-      (wait-is= (assoc (::md/file-metadata create-metadata-payload)
+      (wait-is= (assoc (::md/file-metadata metadata-payload)
                        ::md/name "Updated Name")
                 (first-item (search-metadata uid "Updated Name"))))
 
     (let [new-group (uuid)
-          updated-metadata (-> (::md/file-metadata create-metadata-payload)
+          updated-metadata (-> (::md/file-metadata metadata-payload)
                                (assoc ::md/name "Updated Name")
                                (update-in [::md/sharing ::md/meta-read]
                                           #(into [] (cons new-group %))))]
@@ -180,4 +193,101 @@
                              #(into [] (remove #{uid} %)))
                   (get-metadata-by-id uid new-group))
         (always-is= nil
-                    (get-metadata-by-id uid uid))))))
+                    (get-metadata-by-id uid uid))))
+
+    (testing "We can not retrieve a deleted (tombstoned) file"
+        (delete-file comms uid)
+        (wait-is= nil
+                  (get-metadata-by-id uid)))))
+
+;; bundles
+
+(defn create-bundle-payload
+  [user-id bundled-ids & [overrides]]
+  (merge-with merge
+              {::cs/file-metadata-update-type ::cs/file-metadata-created
+               ::md/file-metadata {::md/type "bundle"
+                                   ::md/bundle-type "datapack"
+                                   ::md/name "Test Bundle"
+                                   ::md/file-type "csv"
+                                   ::md/id user-id
+                                   ::md/bundle-ids bundled-ids
+                                   ::md/provenance {::md/source "upload"
+                                                    :kixi.user/id user-id
+                                                    ::md/created (conformers/time-unparser (t/now))}
+                                   ::md/size-bytes 10
+                                   ::md/sharing {::md/file-read [user-id]
+                                                 ::md/meta-update [user-id]
+                                                 ::md/meta-read [user-id]}}}
+              (or overrides {})))
+
+(defn delete-bundle
+  [comms id]
+  (kcomms/send-valid-event! comms
+                            {:kixi.message/type :event
+                             ::event/type :kixi.datastore/bundle-deleted
+                             ::event/version "1.0.0"
+                             ::command/id (uuid)
+                             :kixi/user {:kixi.user/id id
+                                         :kixi.user/groups [id]}
+                             ::md/id id}
+                            {:partition-key id}))
+
+(defn add-to-bundle
+  [comms id file-ids]
+  (kcomms/send-valid-event! comms
+                            {:kixi.message/type :event
+                             ::event/type :kixi.datastore/files-added-to-bundle
+                             ::event/version "1.0.0"
+                             ::command/id (uuid)
+                             :kixi/user {:kixi.user/id id
+                                         :kixi.user/groups [id]}
+                             ::md/id id
+                             ::md/bundled-ids file-ids}
+                            {:partition-key id}))
+
+(defn remove-from-bundle
+  [comms id file-ids]
+  (kcomms/send-valid-event! comms
+                            {:kixi.message/type :event
+                             ::event/type :kixi.datastore/files-removed-from-bundle
+                             ::event/version "1.0.0"
+                             ::command/id (uuid)
+                             :kixi/user {:kixi.user/id id
+                                         :kixi.user/groups [id]}
+                             ::md/id id
+                             ::md/bundled-ids file-ids}
+                            {:partition-key id}))
+
+(deftest create-bundle-search
+  (let [comms (:communications @user/system)
+        uid (uuid)
+        bundled-ids (into [] (repeatedly 3 uuid))
+        send-event (partial send-event comms uid)
+        bundle-payload (create-bundle-payload uid bundled-ids)]
+    (testing "Bundle creatable and searchable"
+      (send-event bundle-payload)
+      (wait-is= (::md/file-metadata bundle-payload)
+                (get-metadata-by-id uid))
+      (wait-is= (::md/file-metadata bundle-payload)
+                (first-item (search-metadata uid "Test Bundle"))))
+    (let [new-ids [(uuid) (uuid)]
+          remove-ids (take 2 bundled-ids)]
+      (testing "Add files to bundle"
+        (add-to-bundle comms uid new-ids)
+        (wait-is= (update (::md/file-metadata bundle-payload)
+                          ::md/bundle-ids
+                          #(into [] (concat % new-ids)))
+                  (first-item (search-metadata uid "Test Bundle"))))
+
+      (testing "Remove files from bundle"
+        (remove-from-bundle comms uid remove-ids)
+        (wait-is= (update (::md/file-metadata bundle-payload)
+                          ::md/bundle-ids
+                          #(into [] (concat (remove (set remove-ids) %) new-ids)))
+                  (first-item (search-metadata uid "Test Bundle")))))
+
+    (testing "We can not retrieve a deleted (tombstoned) bundle"
+      (delete-bundle comms uid)
+      (wait-is= nil
+                (first-item (search-metadata uid "Test Bundle"))))))

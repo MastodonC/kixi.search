@@ -37,6 +37,25 @@
                                    :sharing
                                    {:meta-read {:contains ["123"]}}}})))))
 
+(deftest query->es-filter-exists-test
+  (testing "Filter and exists"
+    (is (= {:query
+            {:bool
+             {:filter nil
+              :must
+              {:exists
+               {:field "x"}}}}}
+           (sut/query->es-filter {:query
+                                  {"x" {:exists true}}})))
+    (is (= {:query
+            {:bool
+             {:filter nil
+              :must_not
+              {:exists
+               {:field "x"}}}}}
+           (sut/query->es-filter {:query
+                                  {"x" {:exists false}}})))))
+
 (deftest sorting-constructs
   (is (= [{"provenance.created" "desc"}
           {:name "asc"}
@@ -44,4 +63,4 @@
          (mapv sut/sort-by->collapsed-es-sorts
                [{:provenance {:created :desc}}
                 :name
-                {:provenance :created}]))) )
+                {:provenance :created}]))))

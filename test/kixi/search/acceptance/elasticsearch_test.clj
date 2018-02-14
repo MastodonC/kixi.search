@@ -244,3 +244,53 @@
                               @first-resp))
         (is (= 200
                (:status @second-resp)))))))
+
+(deftest search-by-id-not-tombstoned
+  (let [uid (uuid)
+        data (file-event uid)]
+    (insert-data uid data)
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/id {:equals uid}
+                                                         ::md/tombstone {:exists false}}})))
+    (wait-is= nil
+              ((comp first :items) (search-data {:query {::md/id {:equals uid}
+                                                         ::md/tombstone {:exists true}}})))))
+
+(deftest search-by-id-tombstoned
+  (let [uid (uuid)
+        data (file-event uid {::md/tombstone true})]
+    (insert-data uid data)
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/id {:equals uid}
+                                                         ::md/tombstone {:exists true}}})))
+    (wait-is= nil
+              ((comp first :items) (search-data {:query {::md/id {:equals uid}
+                                                         ::md/tombstone {:exists false}}})))))
+
+(deftest search-by-name-and-sharing-not-tombstoned
+  (let [uid (uuid)
+        data (file-event uid)]
+    (insert-data uid data)
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/tombstone {:exists false}
+                                                         ::md/name {:match "Test File"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))
+    (wait-is= nil
+              ((comp first :items) (search-data {:query {::md/tombstone {:exists true}
+                                                         ::md/name {:match "Test File"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))))
+
+(deftest search-by-name-and-sharing-tombstoned
+  (let [uid (uuid)
+        data (file-event uid {::md/tombstone true})]
+    (insert-data uid data)
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/tombstone {:exists true}
+                                                         ::md/name {:match "Test File"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))
+    (wait-is= nil
+              ((comp first :items) (search-data {:query {::md/tombstone {:exists false}
+                                                         ::md/name {:match "Test File"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))
+    (wait-is= nil
+              (get-by-id uid uid))))

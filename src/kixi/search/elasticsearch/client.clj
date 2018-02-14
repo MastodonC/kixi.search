@@ -180,7 +180,15 @@
                     (when-let [matchers (select-nested
                                          flat-query
                                          "match")]
-                      {:must {:match matchers}}))}}
+                      {:must {:match matchers}})
+                    (when-let [exists (select-nested
+                                        flat-query
+                                        "exists")]
+                      (let [field-name (first (keys exists))
+                            pred (exists field-name)]
+                        (if pred
+                            {:must {:exists {:field field-name}}}
+                            {:must_not {:exists {:field field-name}}}))))}}
            (when-not (empty? fields)
              {:_source (mapv field-vectors->collapsed-es-fields fields)})
            (when-not (empty? sort-by)
@@ -221,9 +229,10 @@
                      (json/parse-string keyword)
                      :_source
                      all-keys->kw)]
-        (when-not (empty?
-                   (clojure.set/intersection (ensure-set groups)
-                                             (set (get-in item [::md/sharing ::md/meta-read]))))
+        (when (and (not (empty?
+                          (clojure.set/intersection (ensure-set groups)
+                                                    (set (get-in item [::md/sharing ::md/meta-read])))))
+                   (not (::md/tombstone item)))
           item)))))
 
 (defn search

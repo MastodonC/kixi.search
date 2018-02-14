@@ -35,6 +35,10 @@
 
  :metadata-query ^:ref [:es]
  :metadata-update ^:ref [:es]
+ :metadata-bundle-delete ^:ref [:es]
+ :metadata-bundle-add-files ^:ref [:es]
+ :metadata-bundle-remove-files ^:ref [:es]
+ :metadata-file-delete ^:ref [:es]
 
  :communications #profile  {:local {:coreasync {:app "kixi.search"
                                                 :metrics-level :NONE}}
@@ -47,9 +51,9 @@
                                                       :initial-lease-table-read-capacity 1
                                                       :initial-lease-table-write-capacity 1
                                                       :teardown-kinesis true
-                                                      :teardown-dynamodb true
+                                                      :teardown-dynamodb true}}
                                         ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 100]
-                                                      }}
+
                             :staging-jenkins {:coreasync {:app "kixi.search"}}
                             :staging {:kinesis {:app "kixi.search"
                                                 :endpoint "kinesis.eu-central-1.amazonaws.com"
@@ -59,8 +63,8 @@
                                                 :initial-lease-table-write-capacity 1
                                                 :streams {:event "staging-witan-event"}
                                         ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
-                                                :metrics-level :NONE
-                                                }}
+                                                :metrics-level :NONE}}
+
                             :staging-integration {:kinesis {:app "kixi.search-staging-test"
                                                             :endpoint "kinesis.eu-central-1.amazonaws.com"
                                                             :region-name "eu-central-1"
@@ -69,9 +73,9 @@
                                                             :initial-lease-table-write-capacity 1
                                                             :streams {:event "staging-witan-event"}
                                                             :teardown-dynamodb true
-                                                            :metrics-level :NONE
+                                                            :metrics-level :NONE}}
                                         ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
-                                                            }}
+
                             :prod {:kinesis {:app "kixi.search"
                                              :endpoint "kinesis.eu-west-1.amazonaws.com"
                                              :region-name "eu-west-1"
@@ -80,7 +84,7 @@
                                              :initial-lease-table-write-capacity 2
                                              :streams {:event "prod-witan-event"}
                                              :initial-position-in-stream-date "20180212T230000Z"
-                                             :metrics-level :NONE
+                                             :metrics-level :NONE}}}
                                         ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
-                                             }}}
+
  :repl {:port 5002}}
