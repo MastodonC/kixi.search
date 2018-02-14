@@ -18,6 +18,7 @@
 (alias 'mdq 'kixi.datastore.metadatastore.query)
 (alias 'mdu 'kixi.datastore.metadatastore.update)
 (alias 'event 'kixi.event)
+(alias 'command 'kixi.command)
 
 (def search-host (env :search-host "localhost"))
 (def search-port (Integer/parseInt (env :search-port "8091")))
@@ -207,10 +208,14 @@
 (defn delete-bundle
   [comms id]
   (kcomms/send-valid-event! comms
-                            {::event/type :kixi.datastore/bundle-deleted
+                            {:kixi.message/type :event
+                             ::event/type :kixi.datastore/bundle-deleted
                              ::event/version "1.0.0"
+                             ::command/id (uuid)
+                             :kixi/user {:kixi.user/id id
+                                         :kixi.user/groups [id]}
                              ::md/id id}
-                            {:kixi.comms.event/partition-key id}))
+                            {:partition-key id}))
 
 (deftest create-bundle-search
   (let [comms (:communications @user/system)
@@ -224,6 +229,11 @@
                 (get-metadata-by-id uid))
       (wait-is= (::md/file-metadata bundle-payload)
                 (first-item (search-metadata uid "Test Bundle"))))
+
+    (testing "Add file to bundle")
+
+    (testing "Remove file from bundle")
+
     (testing "Delete bundle"
       (delete-bundle comms uid)
       (wait-is= nil
