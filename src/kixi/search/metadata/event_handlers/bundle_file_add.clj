@@ -4,7 +4,7 @@
             [kixi.datastore.metadatastore :as md]
             [kixi.search.elasticsearch.client :as es]
             [clojure.spec.alpha :as s]
-            [taoensso.timbre :as timbre :refer [info]])  )
+            [taoensso.timbre :as timbre :refer [info]]))
 
 (def base-index-name "kixi-search_metadata")
 (def doc-type "metadata")
@@ -21,7 +21,7 @@
                  (::md/id add-files-event)
                  (fn [meta]
                    (update meta
-                           ::md/bundle-ids
+                           ::md/bundled-ids
                            #(into [] (distinct (concat % (::md/bundled-ids add-files-event))))))))
 
 (defn response-event
