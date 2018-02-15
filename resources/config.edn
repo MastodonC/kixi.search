@@ -82,8 +82,8 @@
                                              :dynamodb-endpoint "dynamodb.eu-west-1.amazonaws.com"
                                              :initial-lease-table-read-capacity 2
                                              :initial-lease-table-write-capacity 2
-                                             :streams {:event "prod-witan-event"}
-                                             :initial-position-in-stream-date "20180212T230000Z"
+                                             :streams {:event "prod-event-replay-kixi-search"}
+                                             ;:initial-position-in-stream-date "20180212T230000Z"
                                              :metrics-level :NONE}}}
                                         ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
 
