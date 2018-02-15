@@ -19,17 +19,19 @@
   [es-url index-name update-event]
   (let [metadata (::md/file-metadata update-event)]
     (info "Create: " metadata)
-    (es/insert-data
-     index-name
-     doc-type
-     es-url
-     (::md/id metadata)
-     metadata)))
+    (when-not (= "891cd066-ddeb-43f7-bbe3-d854c663c4ad"
+                 (::md/id metadata))
+      (es/insert-data
+       index-name
+       doc-type
+       es-url
+       (::md/id metadata)
+       metadata))))
 
 (defmethod update-metadata-processor ::cs/file-metadata-structural-validation-checked
   [es-url index-name update-event]
-  (info "Update: " update-event)
-  )
+  (info "Update: " update-event))
+
 
 (defn sharing-updater
   [current update-event]
@@ -44,9 +46,11 @@
 (defmethod update-metadata-processor ::cs/file-metadata-sharing-updated
   [es-url index-name update-event]
   (info "Update Share: " update-event)
-  (es/apply-func index-name doc-type es-url
-                 (::md/id update-event)
-                 #(sharing-updater % update-event)))
+  (when-not (= "891cd066-ddeb-43f7-bbe3-d854c663c4ad"
+               (::md/id update-event))
+    (es/apply-func index-name doc-type es-url
+                   (::md/id update-event)
+                   #(sharing-updater % update-event))))
 
 (defn dissoc-nonupdates
   [md]
@@ -133,10 +137,12 @@
 (defmethod update-metadata-processor ::cs/file-metadata-update
   [es-url index-name update-event]
   (info "Update: " update-event)
-  (es/apply-func index-name doc-type es-url
-                 (::md/id update-event)
-                 #(apply-updates %
-                                 (dissoc-nonupdates update-event))))
+  (when-not (= "891cd066-ddeb-43f7-bbe3-d854c663c4ad"
+               (::md/id update-event))
+    (es/apply-func index-name doc-type es-url
+                   (::md/id update-event)
+                   #(apply-updates %
+                                   (dissoc-nonupdates update-event)))))
 
 (defn response-event
   [r]
