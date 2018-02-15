@@ -19,7 +19,7 @@
                  [kixi/kixi.comms "0.2.33"]
                  [kixi/kixi.log "0.1.4"]
                  [kixi/kixi.metrics "0.4.0"]
-                 [kixi/kixi.spec "0.1.15"]
+                 [kixi/kixi.spec "0.1.18"]
                  [joplin.core "0.3.9"]
                  [org.clojure/clojure "1.9.0-alpha17"]
                  [org.clojure/tools.nrepl "0.2.12"]
