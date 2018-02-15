@@ -262,17 +262,19 @@
 (deftest create-bundle-search
   (let [comms (:communications @user/system)
         uid (uuid)
-        bundled-ids (into [] (repeatedly 3 uuid))
+        bundled-ids (into #{} (repeatedly 3 uuid))
         send-event (partial send-event comms uid)
         bundle-payload (create-bundle-payload uid bundled-ids)]
     (testing "Bundle creatable and searchable"
       (send-event bundle-payload)
       (wait-is= (::md/file-metadata bundle-payload)
-                (get-metadata-by-id uid))
+                (-> (get-metadata-by-id uid)
+                    (update ::md/bundled-ids set)))
       (wait-is= (::md/file-metadata bundle-payload)
-                (first-item (search-metadata uid "Test Bundle"))))
-    (let [new-ids [(uuid) (uuid)]
-          remove-ids (take 2 bundled-ids)]
+                (-> (first-item (search-metadata uid "Test Bundle"))
+                    (update ::md/bundled-ids set))))
+    (let [new-ids (hash-set (uuid) (uuid))
+          remove-ids (into #{} (take 2 bundled-ids))]
       (testing "Add files to bundle"
         (add-to-bundle comms uid new-ids)
         (wait-is= (update (::md/file-metadata bundle-payload)
