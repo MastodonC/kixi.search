@@ -22,7 +22,7 @@
                  (::md/id remove-files-event)
                  (fn [meta]
                    (update meta
-                           ::md/bundle-ids
+                           ::md/bundled-ids
                            #(into [] (remove (set (::md/bundled-ids remove-files-event)) %))))))
 
 (defn response-event
