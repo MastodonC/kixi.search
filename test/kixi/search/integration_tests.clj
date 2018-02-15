@@ -211,7 +211,7 @@
                                    ::md/name "Test Bundle"
                                    ::md/file-type "csv"
                                    ::md/id user-id
-                                   ::md/bundle-ids bundled-ids
+                                   ::md/bundled-ids bundled-ids
                                    ::md/provenance {::md/source "upload"
                                                     :kixi.user/id user-id
                                                     ::md/created (conformers/time-unparser (t/now))}
@@ -276,14 +276,14 @@
       (testing "Add files to bundle"
         (add-to-bundle comms uid new-ids)
         (wait-is= (update (::md/file-metadata bundle-payload)
-                          ::md/bundle-ids
+                          ::md/bundled-ids
                           #(into [] (concat % new-ids)))
                   (first-item (search-metadata uid "Test Bundle"))))
 
       (testing "Remove files from bundle"
         (remove-from-bundle comms uid remove-ids)
         (wait-is= (update (::md/file-metadata bundle-payload)
-                          ::md/bundle-ids
+                          ::md/bundled-ids
                           #(into [] (concat (remove (set remove-ids) %) new-ids)))
                   (first-item (search-metadata uid "Test Bundle")))))
 
