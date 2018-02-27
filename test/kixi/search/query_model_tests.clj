@@ -16,4 +16,4 @@
                    {:query {::msq/name {:match "a"}}
                     :fields [::ms/name ::ms/id
                              [::ms/provenance ::ms/created]
-                             [::ms/provenance ::ms/created-by]]})))
+                             [::ms/provenance :kixi.user/id]]})))
