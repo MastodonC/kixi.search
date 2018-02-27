@@ -91,7 +91,8 @@ Creates:
             (when (map? m)
               (concat (keys m)
                       (flatten (keep collect (vals m))))))]
-    (set (collect metadata->query-actions))))
+    (set (concat (collect metadata->query-actions)
+                 [::ms/id [::ms/provenance ::ms/created-by]]))))
 
 (s/def ::fields
   (s/every (s/or :field field-list
