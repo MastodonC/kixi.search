@@ -67,7 +67,7 @@ Creates:
 (def metadata->query-actions
   {::ms/name #{:match}
    ::ms/type #{:contains}
-   ::ms/sharing {::ms/meta-read #{:contains}
+   ::ms/sharing {::ms/meta-read #{:equal}
                  ::ms/meta-update #{:contains}
                  ::ms/bundle-add #{:contains}}
    ::ms/tombstone #{:exists}
