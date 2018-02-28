@@ -96,7 +96,7 @@ Creates:
                   [::ms/provenance :kixi.user/id]
                   ::ms/type
                   ::ms/file-type
-                  ::ms/size
+                  ::ms/size-bytes
                   ::ms/license
                   ::ms/sharing]))))
 
