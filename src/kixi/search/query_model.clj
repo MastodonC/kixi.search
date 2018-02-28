@@ -95,12 +95,8 @@ Creates:
                  [::ms/id
                   [::ms/provenance :kixi.user/id]
                   ::ms/type
-<<<<<<< Updated upstream
-                  ::ms/size
-=======
                   ::ms/file-type
                   ::ms/size-bytes
->>>>>>> Stashed changes
                   ::ms/license
                   ::ms/sharing]))))
 
