@@ -130,6 +130,15 @@
               ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
                                                          ::md/sharing {::md/meta-read {:contains [uid]}}}})))))
 
+(deftest search-by-name-and-sharing-and-type
+  (let [uid (uuid)
+        data (file-event uid)]
+    (insert-data uid data)
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/type {:equal "stored"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))))
+
 (deftest search-by-id-filter-fields
   (testing "Top level field"
     (let [uid (uuid)
