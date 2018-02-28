@@ -92,7 +92,12 @@ Creates:
               (concat (keys m)
                       (flatten (keep collect (vals m))))))]
     (set (concat (collect metadata->query-actions)
-                 [::ms/id [::ms/provenance :kixi.user/id]]))))
+                 [::ms/id
+                  [::ms/provenance :kixi.user/id]
+                  ::ms/type
+                  ::ms/size
+                  ::ms/license
+                  ::ms/sharing]))))
 
 (s/def ::fields
   (s/every (s/or :field field-list
