@@ -87,19 +87,19 @@
 
 (defn file-event
   [user-id & [overrides]]
-  (merge-with merge
-              {::md/type "stored"
-               ::md/file-type "csv"
-               ::md/id user-id
-               ::md/name "Test File"
-               ::md/provenance {::md/source "upload"
-                                ::user/id user-id
-                                ::md/created (conformers/time-unparser (t/now))}
-               ::md/size-bytes 10
-               ::md/sharing {::md/file-read [user-id]
-                             ::md/meta-update [user-id]
-                             ::md/meta-read [user-id]}}
-              (or overrides {})))
+  (merge
+   {::md/type "stored"
+    ::md/file-type "csv"
+    ::md/id user-id
+    ::md/name "Test File"
+    ::md/provenance {::md/source "upload"
+                     ::user/id user-id
+                     ::md/created (conformers/time-unparser (t/now))}
+    ::md/size-bytes 10
+    ::md/sharing {::md/file-read [user-id]
+                  ::md/meta-update [user-id]
+                  ::md/meta-read [user-id]}}
+   (or overrides {})))
 
 
 (use-fixtures :once
@@ -128,16 +128,68 @@
     (insert-data uid data)
     (wait-is= data
               ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}}))))  )
+
+(deftest search-by-sharing-and-type
+  (let [uid (uuid)
+        uid2 (uuid)
+        data-one (file-event uid)
+        data-two (file-event uid
+                             {::md/type "bundle"
+                              ::md/id uid2})]
+    (insert-data uid data-one)
+    (insert-data uid2 data-two)
+    (wait-is= 2
+              ((comp count :items) (search-data {:query {::md/sharing {::md/meta-read {:contains [uid]}}}})))
+    (wait-is= 1
+              ((comp count :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/type {:equals "stored"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))
+    (wait-is= data-one
+              ((comp first :items) (search-data {:query {::md/type {:equals "stored"}
                                                          ::md/sharing {::md/meta-read {:contains [uid]}}}})))))
 
-(deftest search-by-name-and-sharing-and-type
+(deftest search-by-multiple-elements
   (let [uid (uuid)
         data (file-event uid)]
     (insert-data uid data)
     (wait-is= data
               ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
-                                                         ::md/type {:equal "stored"}
-                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))))
+                                                         ::md/type {:equals "stored"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}
+                                                                       ::md/meta-update {:contains [uid]}}}})))
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/type {:equals "stored"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}
+                                                                       ::md/meta-update {:contains [uid]}}}})))
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/type {:equals "stored"}
+                                                         ::md/file-type {:equals "csv"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}
+                                                                       ::md/meta-update {:contains [uid]}}}})))
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/provenance {::md/source {:match "upload"}}
+                                                         ::md/type {:equals "stored"}
+                                                         ::md/file-type {:equals "csv"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}
+                                                                       ::md/meta-update {:contains [uid]}}}})))
+    (wait-is= nil
+              ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/provenance {::md/source {:match "upload"}}
+                                                         ::md/type {:equals "stored"
+                                                                    :exists true}
+                                                         ::md/file-type {:equals "csv"}
+                                                         ::md/tombstone {:exists false}
+                                                         ::md/size-bytes {:exists false}
+                                                         ::md/id {:exists true}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}
+                                                                       ::md/meta-update {:contains [uid]}}}})))))
 
 (deftest search-by-id-filter-fields
   (testing "Top level field"

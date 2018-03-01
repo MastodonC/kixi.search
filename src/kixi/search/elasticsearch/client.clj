@@ -161,6 +161,18 @@
                          all-keys->es-format
                          collapse-nesting)))
 
+(defn vector-when-multi
+  [& args]
+  (let [nilless (keep identity (flatten args))]
+    (if (< 1 (count nilless))
+      (apply vector nilless)
+      (first nilless))))
+
+(defn wrap-query-type
+  "Wraps each field query element in a map keyed by the query-type"
+  [query-type query-elements]
+  (mapv #(hash-map query-type (apply hash-map %)) query-elements))
+
 (defn query->es-filter
   [{:keys [query fields sort-by from size] :as query-map}]
   (let [flat-query (collapse-nesting
@@ -168,27 +180,30 @@
                      query))]
     (merge {:query
             {:bool
-             (merge {:filter (merge-with merge
-                                         (when-let [contains (select-nested
-                                                              flat-query
-                                                              "contains")]
-                                           {:terms contains})
-                                         (when-let [equals (select-nested
-                                                            flat-query
-                                                            "equals")]
-                                           {:term equals}))}
+             (merge {:filter (vector-when-multi
+                                 (when-let [contains (select-nested
+                                                      flat-query
+                                                      "contains")]
+                                   (wrap-query-type :terms contains))
+                               (when-let [equals (select-nested
+                                                  flat-query
+                                                  "equals")]
+                                 (wrap-query-type :term equals)))}
                     (when-let [matchers (select-nested
                                          flat-query
                                          "match")]
-                      {:must {:match matchers}})
+                      {:must (vector-when-multi
+                                 (wrap-query-type :match matchers))})
                     (when-let [exists (select-nested
-                                        flat-query
-                                        "exists")]
-                      (let [field-name (first (keys exists))
-                            pred (exists field-name)]
-                        (if pred
-                            {:must {:exists {:field field-name}}}
-                            {:must_not {:exists {:field field-name}}}))))}}
+                                       flat-query
+                                       "exists")]
+                      (apply (partial merge-with vector)
+                             (mapv
+                              (fn [[field-name pred]]
+                                (if pred
+                                  {:must {:exists {:field field-name}}}
+                                  {:must_not {:exists {:field field-name}}}))
+                              exists))))}}
            (when-not (empty? fields)
              {:_source (mapv field-vectors->collapsed-es-fields fields)})
            (when-not (empty? sort-by)
