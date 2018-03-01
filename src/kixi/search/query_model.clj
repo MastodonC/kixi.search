@@ -13,11 +13,13 @@
   (keyword (str (namespace spec) ".query") (name spec)))
 
 (defn query-spec
-  [[spec actions]]
-  (eval
-   `(s/def ~(query-spec-name spec)
-      (s/map-of ~actions
-                (partial s/valid? ~spec)))))
+  [[spec {:keys [predicates type-override]}]]
+  (let [t# (or type-override
+               (partial s/valid? spec))]
+    (eval
+     `(s/def ~(query-spec-name spec)
+        (s/map-of ~predicates
+                  ~t#)))))
 
 (defn query-map-spec
   [[map-spec fields]]
@@ -32,7 +34,7 @@
   [definition-map]
   (distinct
    (sp/select
-    [sp/ALL (sp/if-path [sp/LAST map?]
+    [sp/ALL (sp/if-path [sp/LAST map? (sp/pred #(not (:predicates %)))]
                         [sp/LAST sp/ALL]
                         identity)]
     definition-map)))
@@ -43,12 +45,22 @@
    (mapv (fn [[k v]]
            [k (keys v)])
          (sp/select
-          [sp/ALL (sp/selected? sp/LAST map?)]
+          [sp/ALL (sp/selected? sp/LAST map? (sp/pred #(not (:predicates %))))]
           definition-map))))
 
-(defn create-query-specs
+(defn to-homogeneous
   [definition-map]
-  (let [query-specs (map query-spec (all-specs-with-actions definition-map))
+  (sp/transform
+   [sp/ALL sp/LAST (sp/if-path set?
+                               identity
+                               [(sp/pred #(not (:predicates %))) sp/ALL sp/LAST set?])]
+   #(hash-map :predicates %)
+   definition-map))
+
+(defn create-query-specs
+  [hetrogeneous-definition-map]
+  (let [definition-map (to-homogeneous hetrogeneous-definition-map)
+        query-specs (map query-spec (all-specs-with-actions definition-map))
         map-specs (map query-map-spec (sub-maps-with-keys definition-map))]
     (doall (concat query-specs map-specs))))
 
@@ -63,9 +75,14 @@ Example:
 
 Creates:
 (s/def ::msq/name
-  (map-of #{:match} :kixi.datastore.metadatastore/name))")
+  (map-of #{:match} :kixi.datastore.metadatastore/name))
+
+There is the ability to provide a type override, for use when you don't want the query spec to be limited
+to the underlying standard spec. Used here to allow users to search for file names, with strings that
+are themselves not valid file names.")
 (def metadata->query-actions
-  {::ms/name #{:match}
+  {::ms/name {:predicates #{:match}
+              :type-override string?}
    ::ms/type #{:equals}
    ::ms/sharing {::ms/meta-read #{:contains}
                  ::ms/meta-update #{:contains}

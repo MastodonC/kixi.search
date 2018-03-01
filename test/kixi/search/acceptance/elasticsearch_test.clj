@@ -128,7 +128,7 @@
     (insert-data uid data)
     (wait-is= data
               ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
-                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}}))))  )
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}}}})))))
 
 (deftest search-by-sharing-and-type
   (let [uid (uuid)
