@@ -66,7 +66,7 @@ Creates:
   (map-of #{:match} :kixi.datastore.metadatastore/name))")
 (def metadata->query-actions
   {::ms/name #{:match}
-   ::ms/type #{:equal}
+   ::ms/type #{:equals}
    ::ms/sharing {::ms/meta-read #{:contains}
                  ::ms/meta-update #{:contains}
                  ::ms/bundle-add #{:contains}}
