@@ -204,7 +204,14 @@
                       {:must (vector-when-multi
                                  (mapv
                                   inject-standard-analyzer
-                                  (wrap-query-type :match matchers)))})
+                                  (wrap-query-type :match matchers)))
+                       :should (vector-when-multi
+                                   (mapv
+                                    #(hash-map :span_first
+                                               {:match %
+                                                :end 1})
+                                    (wrap-query-type :span_term
+                                                     matchers)))})
                     (when-let [exists (select-nested
                                        flat-query
                                        "exists")]

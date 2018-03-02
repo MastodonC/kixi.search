@@ -174,14 +174,14 @@
                                                                        ::md/meta-update {:contains [uid]}}}})))
     (wait-is= data
               ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
-                                                         ::md/provenance {::md/source {:match "upload"}}
+                                                         ::md/provenance {::md/source {:equals "upload"}}
                                                          ::md/type {:equals "stored"}
                                                          ::md/file-type {:equals "csv"}
                                                          ::md/sharing {::md/meta-read {:contains [uid]}
                                                                        ::md/meta-update {:contains [uid]}}}})))
     (wait-is= nil
               ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
-                                                         ::md/provenance {::md/source {:match "upload"}}
+                                                         ::md/provenance {::md/source {:equals "upload"}}
                                                          ::md/type {:equals "stored"
                                                                     :exists true}
                                                          ::md/file-type {:equals "csv"}
