@@ -29,7 +29,8 @@
   (testing "Filter and matchers"
     (is (= {:query
             {:bool
-             {:must {:match {"name" "x"}}
+             {:must {:match {"name" {:query "x"
+                                     :analyzer "standard"}}}
               :filter
               {:terms {"sharing.meta-read" ["123"]}}}}}
            (sut/query->es-filter {:query
