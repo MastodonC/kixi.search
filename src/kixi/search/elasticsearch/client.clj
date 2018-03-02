@@ -173,6 +173,15 @@
   [query-type query-elements]
   (mapv #(hash-map query-type (apply hash-map %)) query-elements))
 
+(defn inject-standard-analyzer
+  [query-term]
+  (specter/transform
+   [specter/MAP-VALS specter/MAP-VALS]
+   #(hash-map :query %
+              :analyzer
+              "standard")
+   query-term))
+
 (defn query->es-filter
   [{:keys [query fields sort-by from size] :as query-map}]
   (let [flat-query (collapse-nesting
@@ -193,7 +202,9 @@
                                          flat-query
                                          "match")]
                       {:must (vector-when-multi
-                                 (wrap-query-type :match matchers))})
+                                 (mapv
+                                  inject-standard-analyzer
+                                  (wrap-query-type :match matchers)))})
                     (when-let [exists (select-nested
                                        flat-query
                                        "exists")]
