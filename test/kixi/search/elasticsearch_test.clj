@@ -31,6 +31,8 @@
             {:bool
              {:must {:match {"name" {:query "x"
                                      :analyzer "standard"}}}
+              :should {:span_first {:match {:span_term {"name" "x"}}
+                                    :end 1}}
               :filter
               {:terms {"sharing.meta-read" ["123"]}}}}}
            (sut/query->es-filter {:query
