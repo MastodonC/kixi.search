@@ -101,25 +101,8 @@ are themselves not valid file names.")
 
 (define-query-spec)
 
-
-;;TODO this is not spohisticated enough, should assert
-;;correct fields are nested at the right levels
-(def field-list
-  (letfn [(collect [m]
-            (when (map? m)
-              (concat (keys m)
-                      (flatten (keep collect (vals m))))))]
-    (set (concat (collect metadata->query-actions)
-                 [::ms/id
-                  [::ms/provenance :kixi.user/id]
-                  ::ms/type
-                  ::ms/file-type
-                  ::ms/size-bytes
-                  ::ms/license
-                  ::ms/sharing]))))
-
 (s/def ::fields
-  (s/every (s/or :field field-list
+  (s/every (s/or :field qualified-keyword?
                  :nested-field ::fields)
            :kind vector?))
 
@@ -127,10 +110,10 @@ are themselves not valid file names.")
   #{:asc :desc})
 
 (s/def ::sort-by
-  (s/every (s/or :sort-by field-list
-                 :nested-sort-by (s/map-of field-list
+  (s/every (s/or :sort-by qualified-keyword?
+                 :nested-sort-by (s/map-of qualified-keyword?
                                            ::sort-by)
-                 :sorting (s/and (s/map-of field-list
+                 :sorting (s/and (s/map-of qualified-keyword?
                                            sort-orders)
                                  #(= 1 (count (keys %)))))
            :kind vector?))
