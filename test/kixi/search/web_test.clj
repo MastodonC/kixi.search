@@ -55,7 +55,7 @@
              (sut/parse-sort-by ["a"]))))
   (t/testing "Nested field"
     (t/is (= [{:a :b}]
-             (sut/parse-sort-by [{"a" "b"}]))))
+             (sut/parse-sort-by [{:a "b"}]))))
   (t/testing "Nested nested fields"
     (t/is (= [:a {:a :b} {:c {:d {:e :f}}}]
-             (sut/parse-sort-by ["a" {"a" "b"} {"c" {"d" {"e" "f"}}}])))))
+             (sut/parse-sort-by ["a" {:a "b"} {:c {:d {:e "f"}}}])))))
