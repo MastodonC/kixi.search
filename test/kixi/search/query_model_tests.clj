@@ -20,6 +20,10 @@
                              [::ms/provenance ::ms/created]
                              [::ms/provenance :kixi.user/id]]})))
 
+(deftest sort-by-query
+  (is (spec/valid? ::sut/query-map
+                   {:sort-by [::ms/name {::ms/provenance ::ms/created}]})))
+
 (deftest to-homogeneous-test
   (is (= {::ms/name {:predicates #{:match}}
           ::ms/sharing {::ms/meta-read {:predicates #{:contains}}}}

@@ -196,9 +196,9 @@
                     (get-metadata-by-id uid uid))))
 
     (testing "We can not retrieve a deleted (tombstoned) file"
-        (delete-file comms uid)
-        (wait-is= nil
-                  (get-metadata-by-id uid)))))
+      (delete-file comms uid)
+      (wait-is= nil
+                (get-metadata-by-id uid)))))
 
 ;; bundles
 

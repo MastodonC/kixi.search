@@ -114,7 +114,8 @@ are themselves not valid file names.")
                  :nested-sort-by (s/map-of qualified-keyword?
                                            ::sort-by)
                  :sorting (s/and (s/map-of qualified-keyword?
-                                           sort-orders)
+                                           (s/or :explicit-order sort-orders
+                                                 :implicit-order qualified-keyword?))
                                  #(= 1 (count (keys %)))))
            :kind vector?))
 
