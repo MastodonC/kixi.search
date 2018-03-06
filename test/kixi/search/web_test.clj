@@ -48,3 +48,14 @@
   (t/testing "Nested nested fields"
     (t/is (= [:a [:b] [:c [:d [:e :f]]]]
              (sut/parse-nested-vectors ["a" ["b"] ["c" ["d" ["e" "f"]]]])))))
+
+(t/deftest sort-by-parsed
+  (t/testing "Single default sort"
+    (t/is (= [:a]
+             (sut/parse-sort-by ["a"]))))
+  (t/testing "Nested field"
+    (t/is (= [{:a :b}]
+             (sut/parse-sort-by [{"a" "b"}]))))
+  (t/testing "Nested nested fields"
+    (t/is (= [:a {:a :b} {:c {:d {:e :f}}}]
+             (sut/parse-sort-by ["a" {"a" "b"} {"c" {"d" {"e" "f"}}}])))))
