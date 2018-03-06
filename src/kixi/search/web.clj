@@ -87,6 +87,18 @@
      namespaced-keyword
      unparsed)))
 
+
+(defn parse-sort-by
+  [unparsed]
+  (when unparsed
+    (mapv
+     (fn [element]
+       (if (map? element)
+         (zipmap (parse-sort-by (keys element))
+                 (parse-sort-by (vals element)))
+         (namespaced-keyword element)))
+     unparsed)))
+
 (defn update-present
   [m k f]
   (if (k m)
@@ -99,7 +111,7 @@
     (let [query-raw (-> (json/parse-string (body-string request)
                                            namespaced-keyword)
                         (update-present :fields parse-nested-vectors)
-                        (update-present :sort-by parse-nested-vectors))
+                        (update-present :sort-by parse-sort-by))
           conformed-query (spec/conform ::model/query-map
                                         query-raw)]
       (cond (= ::spec/invalid conformed-query)
