@@ -40,20 +40,31 @@
                                    :sharing
                                    {:meta-read {:contains ["123"]}}}})))))
 
+(deftest empty-string-matchers-removed
+  (is (= {:query
+          {:bool
+           {:filter
+            {:terms {"sharing.meta-read" ["123"]}}}}}
+         (sut/query->es-filter {:query
+                                {:name {:match ""}
+                                 :sharing
+                                 {:meta-read {:contains ["123"]}}}})
+         (sut/query->es-filter {:query
+                                {:sharing
+                                 {:meta-read {:contains ["123"]}}}}))))
+
 (deftest query->es-filter-exists-test
   (testing "Filter and exists"
     (is (= {:query
             {:bool
-             {:filter nil
-              :must
+             {:must
               {:exists
                {:field "x"}}}}}
            (sut/query->es-filter {:query
                                   {"x" {:exists true}}})))
     (is (= {:query
             {:bool
-             {:filter nil
-              :must_not
+             {:must_not
               {:exists
                {:field "x"}}}}}
            (sut/query->es-filter {:query

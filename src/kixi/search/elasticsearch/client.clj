@@ -8,7 +8,7 @@
             [kixi.datastore.metadatastore :as md]
             [kixi.search.query-model :as model]
             [kixi.search.time :as t]
-            [medley :refer [map-vals]]
+            [medley :refer [map-vals remove-vals]]
             [taoensso.timbre :as timbre :refer [error info]]))
 
 (defn migrate
@@ -163,7 +163,8 @@
 
 (defn vector-when-multi
   [& args]
-  (let [nilless (keep identity (flatten args))]
+  (when-let [nilless (seq
+                      (keep identity (flatten args)))]
     (if (< 1 (count nilless))
       (apply vector nilless)
       (first nilless))))
@@ -182,25 +183,25 @@
               "standard")
    query-term))
 
+(def remove-empty
+  (comp not-empty (partial remove-vals empty?)))
+
 (defn query->es-filter
   [{:keys [query fields sort-by from size] :as query-map}]
   (let [flat-query (collapse-nesting
                     (all-keys->es-format
-                     query))]
+                     query))
+        select-query (partial select-nested flat-query)]
     (merge {:query
             {:bool
-             (merge {:filter (vector-when-multi
-                                 (when-let [contains (select-nested
-                                                      flat-query
-                                                      "contains")]
-                                   (wrap-query-type :terms contains))
-                               (when-let [equals (select-nested
-                                                  flat-query
-                                                  "equals")]
-                                 (wrap-query-type :term equals)))}
-                    (when-let [matchers (select-nested
-                                         flat-query
-                                         "match")]
+             (merge (when-let [filters (vector-when-multi
+                                           (when-let [contains (select-query "contains")]
+                                             (wrap-query-type :terms contains))
+                                         (when-let [equals (select-query "equals")]
+                                           (wrap-query-type :term equals)))]
+                      {:filter filters})
+                    (when-let [matchers (remove-empty
+                                         (select-query "match"))]
                       {:must (vector-when-multi
                                  (mapv
                                   inject-standard-analyzer
@@ -212,9 +213,7 @@
                                                 :end 1})
                                     (wrap-query-type :span_term
                                                      matchers)))})
-                    (when-let [exists (select-nested
-                                       flat-query
-                                       "exists")]
+                    (when-let [exists (select-query "exists")]
                       (apply (partial merge-with vector)
                              (mapv
                               (fn [[field-name pred]]

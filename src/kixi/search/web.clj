@@ -114,10 +114,10 @@
             (response
              (query/find-by-query query
                                   (merge-with merge
-                                    {:query {::msq/tombstone {:exists false}}}
-                                    (update-in (or (:query (apply hash-map conformed-query)) {})
-                                               [:query ::msq/sharing]
-                                               (partial ensure-group-access (request->user-groups request))))))))))
+                                              {:query {::msq/tombstone {:exists false}}}
+                                              (update-in (or (:query (apply hash-map conformed-query)) {})
+                                                         [:query ::msq/sharing]
+                                                         (partial ensure-group-access (request->user-groups request))))))))))
 
 (defn routes
   "Create the URI route structure for our application."

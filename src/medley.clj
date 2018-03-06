@@ -14,3 +14,15 @@
   "Maps a function over the values of an associative collection."
   [f coll]
   (reduce-map (fn [xf] (fn [m k v] (xf m k (f v)))) coll))
+
+(defn filter-vals
+  "Returns a new associative collection of the items in coll for which
+  `(pred (val item))` returns true."
+  [pred coll]
+  (reduce-map (fn [xf] (fn [m k v] (if (pred v) (xf m k v) m))) coll))
+
+(defn remove-vals
+  "Returns a new associative collection of the items in coll for which
+  `(pred (val item))` returns false."
+  [pred coll]
+  (filter-vals (complement pred) coll))
