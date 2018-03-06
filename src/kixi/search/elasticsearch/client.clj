@@ -190,23 +190,18 @@
   [{:keys [query fields sort-by from size] :as query-map}]
   (let [flat-query (collapse-nesting
                     (all-keys->es-format
-                     query))]
+                     query))
+        select-query (partial select-nested flat-query)]
     (merge {:query
             {:bool
              (merge (when-let [filters (vector-when-multi
-                                           (when-let [contains (select-nested
-                                                                flat-query
-                                                                "contains")]
+                                           (when-let [contains (select-query "contains")]
                                              (wrap-query-type :terms contains))
-                                         (when-let [equals (select-nested
-                                                            flat-query
-                                                            "equals")]
+                                         (when-let [equals (select-query "equals")]
                                            (wrap-query-type :term equals)))]
                       {:filter filters})
                     (when-let [matchers (remove-empty
-                                         (select-nested
-                                          flat-query
-                                          "match"))]
+                                         (select-query "match"))]
                       {:must (vector-when-multi
                                  (mapv
                                   inject-standard-analyzer
@@ -218,9 +213,7 @@
                                                 :end 1})
                                     (wrap-query-type :span_term
                                                      matchers)))})
-                    (when-let [exists (select-nested
-                                       flat-query
-                                       "exists")]
+                    (when-let [exists (select-query "exists")]
                       (apply (partial merge-with vector)
                              (mapv
                               (fn [[field-name pred]]
