@@ -22,7 +22,9 @@
 
 (deftest sort-by-query
   (is (spec/valid? ::sut/query-map
-                   {:sort-by [::ms/name {::ms/provenance ::ms/created}]})))
+                   {:sort-by [::ms/name {::ms/provenance ::ms/created}]}))
+  (is (spec/valid? ::sut/query-map
+                   {:sort-by [::ms/name {::ms/provenance {::ms/created :desc}}]})))
 
 (deftest to-homogeneous-test
   (is (= {::ms/name {:predicates #{:match}}

@@ -232,7 +232,7 @@
               (:items
                (search-data {:query {::md/id {:contains [first-id second-id]}}
                              :sort-by [{::md/provenance {::md/created :asc}}]})))
-    (wait-is= [first-data second-data]
+    (wait-is= [second-data first-data]
               (:items
                (search-data {:query {::md/id {:contains [first-id second-id]}}
                              :sort-by [{::md/provenance ::md/created}]})))
