@@ -155,7 +155,7 @@
 (defn sort-by->collapsed-es-sorts
   [sort-def]
   (cond
-    (keyword? sort-def) {(kw->es-format sort-def) "asc"}
+    (keyword? sort-def) {(kw->es-format sort-def) "desc"}
     (map? sort-def) (->> sort-def
                          (map-vals (some-fn model/sort-orders sort-by->collapsed-es-sorts))
                          all-keys->es-format

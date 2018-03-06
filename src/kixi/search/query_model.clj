@@ -109,14 +109,16 @@ are themselves not valid file names.")
 (def sort-orders
   #{:asc :desc})
 
+(s/def ::sort-term
+  (s/or :sort-by qualified-keyword?
+        :nested-sort-by (s/map-of qualified-keyword?
+                                  ::sort-term)
+        :sorting (s/and (s/map-of qualified-keyword?
+                                  sort-orders)
+                        #(= 1 (count (keys %))))))
+
 (s/def ::sort-by
-  (s/every (s/or :sort-by qualified-keyword?
-                 :nested-sort-by (s/map-of qualified-keyword?
-                                           ::sort-by)
-                 :sorting (s/and (s/map-of qualified-keyword?
-                                           (s/or :explicit-order sort-orders
-                                                 :implicit-order qualified-keyword?))
-                                 #(= 1 (count (keys %)))))
+  (s/every ::sort-term
            :kind vector?))
 
 (s/def ::from integer?)
