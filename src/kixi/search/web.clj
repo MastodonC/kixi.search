@@ -94,7 +94,7 @@
     (mapv
      (fn [element]
        (if (map? element)
-         (zipmap (parse-sort-by (keys element))
+         (zipmap (keys element)
                  (parse-sort-by (vals element)))
          (namespaced-keyword element)))
      unparsed)))
