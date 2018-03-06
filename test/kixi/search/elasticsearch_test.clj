@@ -72,7 +72,7 @@
 
 (deftest sorting-constructs
   (is (= [{"provenance.created" "desc"}
-          {:name "asc"}
+          {"name" "asc"}
           {"provenance.created" "asc"}]
          (mapv sut/sort-by->collapsed-es-sorts
                [{:provenance {:created :desc}}
