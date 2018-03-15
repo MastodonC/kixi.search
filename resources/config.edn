@@ -1,5 +1,5 @@
 {:service-name "kixi.search"
- :es #profile {:local {:protocol "http"
+ :es #profile {:default {:protocol "http"
                        :host #or [#env ELASTICSEARCH "localhost"]
                        :port 9200}
                :staging {:protocol "https"
@@ -20,7 +20,7 @@
            :appender #profile {:default :println
                                :staging :json
                                :prod :json}}
- :web #profile {:local {:port 8091
+ :web #profile {:default {:port 8091
                         :request-logging? true}
                 :staging-integration {:port 8091
                                       :request-logging? true}
