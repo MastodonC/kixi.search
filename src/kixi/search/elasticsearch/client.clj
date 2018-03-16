@@ -73,11 +73,10 @@
                        (map mapper (vals m)))
       (list? m) (map mapper m)
       (vector? m) (mapv mapper m)
-      (seq? m) (str m) ; (map mapper m) spec errors contain seq's of sexp's containing code, which breaks elasticsearch validation.
+      (seq? m) (map mapper m)
       (symbol? m) (name m)
       (keyword? m) (f m)
       :else m)))
-
 
 (defn remove-query-sub-ns
   [k]

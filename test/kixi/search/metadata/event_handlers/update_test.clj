@@ -27,9 +27,17 @@
   (is (= {:foo/value [1 2]}
          (sut/apply-updates
           {:foo/value 1}
+          {:foo.update/value {:conj 2}})))
+  (is (= {:foo/value [2]}
+         (sut/apply-updates
+          {}
           {:foo.update/value {:conj 2}}))))
 
 (deftest top-level-disj
+  (is (= {:foo/value []}
+         (sut/apply-updates
+          {}
+          {:foo.update/value {:disj 2}})))
   (is (= {:foo/value [1]}
          (sut/apply-updates
           {:foo/value [1 2]}
