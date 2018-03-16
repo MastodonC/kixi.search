@@ -78,3 +78,11 @@
                [{:provenance {:created :desc}}
                 :name
                 {:provenance :created}]))))
+
+(deftest map-all-keys-test
+  (is (= {"foo__bar" [1]}
+         (sut/all-keys->es-format {:foo/bar [1]})))
+  (is (= {"foo__bar" '(1)}
+         (sut/all-keys->es-format {:foo/bar '(1)})))
+  (is (= {"foo__bar" '(1)}
+         (sut/all-keys->es-format {:foo/bar (remove #{2} [1 2])}))))

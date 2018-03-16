@@ -91,9 +91,10 @@
 
 (defn- to-seq
   [x]
-  (if (coll? x)
-    x
-    (vector x)))
+  (cond
+    (coll? x) x
+    (nil? x) x
+    :else (vector x)))
 
 (defn apply-update
   [current kw update-cmd]
@@ -137,12 +138,10 @@
 (defmethod update-metadata-processor ::cs/file-metadata-update
   [es-url index-name update-event]
   (info "Update: " update-event)
-  (when-not (= "891cd066-ddeb-43f7-bbe3-d854c663c4ad"
-               (::md/id update-event))
-    (es/apply-func index-name doc-type es-url
-                   (::md/id update-event)
-                   #(apply-updates %
-                                   (dissoc-nonupdates update-event)))))
+  (es/apply-func index-name doc-type es-url
+                 (::md/id update-event)
+                 #(apply-updates %
+                                 (dissoc-nonupdates update-event))))
 
 (defn response-event
   [r]
