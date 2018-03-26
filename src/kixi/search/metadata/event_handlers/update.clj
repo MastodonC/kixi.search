@@ -1,5 +1,6 @@
 (ns kixi.search.metadata.event-handlers.update
   (:require [com.stuartsierra.component :as component]
+            [clojure.spec.alpha :as s]
             [kixi.comms :as c]
             [kixi.datastore.metadatastore :as md]
             [kixi.search.elasticsearch.client :as es]
@@ -10,6 +11,14 @@
 
 (def base-index-name "kixi-search_metadata")
 (def doc-type "metadata")
+
+(defmethod c/event-payload
+  [:kixi.datastore/sharing-changed "1.0.0"]
+  [_]
+  (s/keys :req [::md/id
+                ::md/sharing-update
+                :kixi.group/id
+                ::md/activity]))
 
 (defmulti update-metadata-processor
   (fn [es-url index-name update-event]
@@ -42,6 +51,13 @@
                update-fn)))
 
 (defmethod update-metadata-processor ::cs/file-metadata-sharing-updated
+  [es-url index-name update-event]
+  (info "Update Share: " update-event)
+  (es/apply-func index-name doc-type es-url
+                 (::md/id update-event)
+                 #(sharing-updater % update-event)))
+
+(defn sharing-change-processor
   [es-url index-name update-event]
   (info "Update Share: " update-event)
   (es/apply-func index-name doc-type es-url
@@ -162,6 +178,12 @@
                                  (comp response-event
                                        (partial update-metadata-processor es-url profile-index)
                                        :kixi.comms.event/payload))
+        (c/attach-validating-event-handler! communications
+                                            :kixi.search/sharing-update
+                                            :kixi.datastore/sharing-changed
+                                            "1.0.0"
+                                            (comp response-event
+                                                  (partial sharing-change-processor es-url profile-index)))
         (assoc component
                :started true
                :es-url es-url
