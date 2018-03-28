@@ -128,6 +128,16 @@
                       payload
                       {:kixi.comms.event/partition-key id}))
 
+(defn send-valid-event
+  [comms uid payload partition-key]
+  (kcomms/send-valid-event! comms
+                            (merge payload
+                                   {:kixi.message/type :event
+                                    ::command/id (uuid)
+                                    :kixi/user {:kixi.user/id uid
+                                                :kixi.user/groups [uid]}})
+                            {:partition-key partition-key}))
+
 (defn delete-file
   [comms id]
   (kcomms/send-valid-event! comms
@@ -162,10 +172,14 @@
                 (first-item (search-metadata uid "Updated Name"))))
 
     (let [new-group (uuid)
+          new-group2 (uuid)
           updated-metadata (-> (::md/file-metadata metadata-payload)
                                (assoc ::md/name "Updated Name")
                                (update-in [::md/sharing ::md/meta-read]
-                                          #(into [] (cons new-group %))))]
+                                          #(into [] (cons new-group %))))
+          updated-metadata2 (-> updated-metadata
+                                (update-in [::md/sharing ::md/meta-read]
+                                           #(into [] (cons new-group2 %))))]
 
       (testing "New group access grantable"
         (send-event {::cs/file-metadata-update-type ::cs/file-metadata-sharing-updated
@@ -178,21 +192,51 @@
         (wait-is= updated-metadata
                   (get-metadata-by-id uid uid)))
 
+      (testing "New group access grantable (new event type)"
+        (send-valid-event comms uid
+                          {::event/type :kixi.datastore/sharing-changed
+                           ::event/version "1.0.0"
+                           ::md/sharing-update ::md/sharing-conj
+                           ::md/id uid
+                           ::md/activity ::md/meta-read
+                           :kixi.group/id new-group2}
+                          uid)
+        (wait-is= updated-metadata2
+                  (get-metadata-by-id uid new-group2))
+        (wait-is= updated-metadata2
+                  (get-metadata-by-id uid uid)))
+
       (testing "Random group can't access"
         (always-is= nil
                     (get-metadata-by-id uid (uuid))))
+
+      (testing "Group access revokable (new event type)"
+        (send-valid-event comms uid
+                          {::event/type :kixi.datastore/sharing-changed
+                           ::event/version "1.0.0"
+                           ::md/sharing-update ::md/sharing-disj
+                           ::md/id uid
+                           ::md/activity ::md/meta-read
+                           :kixi.group/id new-group2}
+                          uid)
+        (wait-is= nil
+                  (get-metadata-by-id uid new-group2))
+        (always-is= (update-in updated-metadata2
+                               [::md/sharing ::md/meta-read]
+                               #(into [] (remove #{new-group2} %)))
+                    (get-metadata-by-id uid uid)))
 
       (testing "Group access revokable"
         (send-event {::cs/file-metadata-update-type ::cs/file-metadata-sharing-updated
                      ::md/id uid
                      ::md/sharing-update ::md/sharing-disj
                      ::md/activity ::md/meta-read
-                     :kixi.group/id uid})
-        (wait-is= (update-in updated-metadata
-                             [::md/sharing ::md/meta-read]
-                             #(into [] (remove #{uid} %)))
+                     :kixi.group/id new-group})
+        (wait-is= nil
                   (get-metadata-by-id uid new-group))
-        (always-is= nil
+        (always-is= (update-in updated-metadata
+                               [::md/sharing ::md/meta-read]
+                               #(into [] (remove #{new-group} %)))
                     (get-metadata-by-id uid uid))))
 
     (testing "We can not retrieve a deleted (tombstoned) file"
