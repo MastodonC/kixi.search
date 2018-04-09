@@ -26,7 +26,9 @@
                  [com.rpl/specter "1.0.5"]
                  [ring/ring-core "1.6.3"]
                  [ring/ring-jetty-adapter "1.6.3"]
-                 [ring/ring-json "0.4.0"]]
+                 [ring/ring-json "0.4.0"]
+                 [ring-middleware-format "0.7.2"]
+                 [com.cognitect/transit-clj "0.8.303"]]
   :test-selectors {:integration :integration
                    :acceptance (complement :integration)}
   :exclusions [org.clojure/clojure]

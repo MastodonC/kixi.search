@@ -14,7 +14,7 @@
             [kixi.spec :refer [alias]]
             [medley :refer [map-vals]]
             [ring.adapter.jetty :refer [run-jetty]]
-            [ring.middleware.json :refer [wrap-json-response]]
+            [ring.middleware.format-response :refer [wrap-transit-json-response]]
             [ring.util.request :refer [body-string]]
             [ring.util.response :refer [not-found response status]]
             [taoensso.timbre :as timbre :refer [error info infof]]))
@@ -156,7 +156,7 @@
                 (->> metadata-query
                      routes
                      make-handler
-                     wrap-json-response)
+                     wrap-transit-json-response)
                 {:port port
                  :join? false})))
       component))

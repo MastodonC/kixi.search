@@ -85,11 +85,14 @@
   ([meta-id]
    (get-metadata-by-id meta-id meta-id))
   ([meta-id group-id]
-   (some-> (client/get (str "http://" search-host ":" search-port "/metadata/" meta-id)
-                       {:headers {:user-groups [group-id]}
-                        :throw-exceptions false})
-           :body
-           (json/parse-string namespaced-keyword))))
+   (let [response (some-> (client/get (str "http://" search-host ":" search-port "/metadata/" meta-id)
+                                      {:headers {:user-groups [group-id]}
+                                       :throw-exceptions false
+                                       :as :transit+json
+                                       :accept :transit+json
+                                       :coerce :always})) ;; without coercion 404's don't get coerced and the nil response stays as a json-transit string
+         body (:body response)]
+     body)))
 
 (defn search-metadata
   [id n]
@@ -97,9 +100,11 @@
                        {:body (json/generate-string {:query {::mdq/name {:match n}}})
                         :headers {:user-groups [id]}
                         :content-type :json
-                        :throw-exceptions false})
-          :body
-          (json/parse-string namespaced-keyword)))
+                        :throw-exceptions false
+                        :as :transit+json
+                        :accept :transit+json
+                        :coerce :always})
+          :body))
 
 (defn create-metadata-payload
   [user-id & [overrides]]
@@ -312,25 +317,24 @@
     (testing "Bundle creatable and searchable"
       (send-event bundle-payload)
       (wait-is= (::md/file-metadata bundle-payload)
-                (-> (get-metadata-by-id uid)
-                    (update ::md/bundled-ids set)))
+                (get-metadata-by-id uid)
+                )
       (wait-is= (::md/file-metadata bundle-payload)
-                (-> (first-item (search-metadata uid "Test Bundle"))
-                    (update ::md/bundled-ids set))))
+                (first-item (search-metadata uid "Test Bundle"))))
     (let [new-ids (hash-set (uuid) (uuid))
           remove-ids (into #{} (take 2 bundled-ids))]
       (testing "Add files to bundle"
         (add-to-bundle comms uid new-ids)
         (wait-is= (update (::md/file-metadata bundle-payload)
                           ::md/bundled-ids
-                          #(into [] (concat % new-ids)))
+                          #(into #{} (concat % new-ids)))
                   (first-item (search-metadata uid "Test Bundle"))))
 
       (testing "Remove files from bundle"
         (remove-from-bundle comms uid remove-ids)
         (wait-is= (update (::md/file-metadata bundle-payload)
                           ::md/bundled-ids
-                          #(into [] (concat (remove (set remove-ids) %) new-ids)))
+                          #(into #{} (concat (remove (set remove-ids) %) new-ids)))
                   (first-item (search-metadata uid "Test Bundle")))))
 
     (testing "We can not retrieve a deleted (tombstoned) bundle"

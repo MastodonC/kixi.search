@@ -252,6 +252,17 @@
     (set x)
     (hash-set x)))
 
+(def payload-fields-to-coerce
+  {::md/tags set
+   ::md/bundled-ids set})
+
+(defn coerce-response
+  [r fields]
+  (clojure.walk/postwalk #(if (and (vector? %)
+                                   (get fields (first %)))
+                            (update % 1 ((first %) fields))
+                            %) r))
+
 (defn get-by-id
   [index-name doc-type es-url id groups]
   (let [resp (get-by-id-raw- index-name doc-type es-url id false)]
@@ -259,7 +270,8 @@
       (let [item (-> (:body resp)
                      (json/parse-string keyword)
                      :_source
-                     all-keys->kw)]
+                     all-keys->kw
+                     (coerce-response payload-fields-to-coerce))]
         (when (and (not (empty?
                           (clojure.set/intersection (ensure-set groups)
                                                     (set (get-in item [::md/sharing ::md/meta-read])))))
@@ -288,7 +300,7 @@
                                doc-type
                                (query->es-filter query-map)))
                 keyword)]
-      {:items (mapv (comp all-keys->kw (some-fn :_source :fields))
+      {:items (mapv (comp #(coerce-response % payload-fields-to-coerce) all-keys->kw (some-fn :_source :fields))
                     (get-in resp [:hits :hits]))
        :paging {:total (get-in resp [:hits :total])
                 :count (count (get-in resp [:hits :hits]))
