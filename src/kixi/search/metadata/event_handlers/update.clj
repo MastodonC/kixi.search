@@ -123,13 +123,16 @@
     ;;If it's an update DSL then parse and return a function that will apply it.
     ;;Else recurse into the value looking for nested updates.
     (let [update-fn (cond
-                      (update-dsl? update-dsl)
-                      (let [cmd (get-update-dsl-cmd update-dsl) ;; we only deal with single line update DSLs
-                            arg (get-update-dsl-arg update-dsl)]
-                        (case cmd
-                          :set (constantly arg)
-                          :conj #(distinct (concat (to-seq %) (to-seq arg)))
-                          :disj #(remove (set (to-seq arg)) (to-seq %))))
+                      (s/valid? kw update-dsl)
+                      (fn [existing]
+                        (reduce-kv
+                         (fn [a cmd arg]
+                           (case cmd
+                             :set arg
+                             :conj (distinct (concat (to-seq a) (to-seq arg)))
+                             :disj (remove (set (to-seq arg)) (to-seq a))))
+                         existing
+                         (apply sorted-map (reduce concat [] update-dsl))))
                       :else 
                       #(apply-updates % update-dsl))]
       (update current
