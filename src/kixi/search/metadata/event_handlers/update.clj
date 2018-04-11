@@ -88,9 +88,10 @@
            (clojure.string/index-of (namespace kw) ".update"))
      (name kw))))
 
-;; The update command DSL, by example, looks like this.
+;; The update command DSL for metadata changes only, by example, looks
+;; like this (specifically out of scope are bundle-ids and sharing)
 ;;
-;; {:set #{"baz"}
+;; {:set "baz"
 ;;  :conj #{"foo" "bar"}
 ;;  :disj #{"bar"}
 ;; }
@@ -136,13 +137,16 @@
 ;;
 ;; is very natural but unfortunately disallowed.  Instead you have to write
 ;;
-;; ::md.update/tags {:conj #("new_tag")}
+;; ::md.update/tags {:conj #{"new_tag"}}
 ;;
-;; The implementation of the parser for the DSL does not 
+;; The implementation of the parser for the DSL does not know about
+;; the specs of the arguments, rather it has to assume that they are
+;; off a certain form.  This is a problem as it opaquely constrains
+;; the specs allowed. i.e., if you don't know about the parser and how
+;; it works then you can write specs for metadata that will break it.
 ;;
-;; The datastore link here
-;; provides some but not all of the DSL definitions for the metadata
-;; fields.
+;; The datastore link here provides some but not all of the DSL
+;; definitions for the metadata fields.
 ;;
 ;; https://github.com/mastodonc/kixi.datastore/blob/master/src/kixi/datastore/metadatastore/command_handler.clj#L255
 ;;
