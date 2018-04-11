@@ -91,11 +91,6 @@
           {:foo/value 2}
           {:foo.update/value {:disj [2]}}))))
 
-;; DOOOM DOOOOOOOOOOOOOOOOOOOOOOOOOMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM!!!!
-;;
-;; The DSL choice of using maps instead of lists means we have no guarentee of ordering
-;; we can't trust conj and disj....
-
 (deftest top-level-conj-disj
   (s/def :foo.update/value (s/map-of #{:conj :disj} (s/coll-of int?)))
   (is (= {:foo/value [3]}
@@ -103,6 +98,11 @@
           {}
           {:foo.update/value {:disj [2]
                               :conj [3]}})))
+  (is (= {:foo/value [3]}
+         (sut/apply-updates
+          {:foo/value [2]}
+          {:foo.update/value {:conj [3]
+                              :disj [2]}})))
   ;; in the unlikely event you conj and disj the same value:
   ;; - conj will always be eval'd first
   ;; - disj will always be eval'd second
@@ -118,29 +118,43 @@
                               :conj [3]}}))))
 
 (deftest nested-set
+  (s/def :foo.update/value (s/keys :req [:bar.update/value]))
+  (s/def :bar.update/value (s/map-of #{:set} string?))
   (is (= {:foo/value {:bar/value "string"}}
          (sut/apply-updates
           {:foo/value {:bar/value 1}}
           {:foo.update/value {:bar.update/value {:set "string"}}}))))
 
 (deftest nested-rm
+  (s/def :foo.update/value (s/keys :req [:bar.update/value]))
+  (s/def :bar.update/value #{:rm})
   (is (= {:foo/value {}}
          (sut/apply-updates
           {:foo/value {:bar/value 1}}
           {:foo.update/value {:bar.update/value :rm}}))))
 
 (deftest multi-nested-update
+  (s/def :foo.update/value (s/keys :req [:bar.update/value
+                                         :bar.update/other
+                                         :bar.update/also
+                                         :bar.update/new]))
+  (s/def :bar.update/value (s/map-of #{:set} string?))
+  (s/def :bar.update/other (s/map-of #{:set} string?))
+  (s/def :bar.update/also #{:rm})
+  (s/def :bar.update/new (s/map-of #{:set} string?))
   (is (= {:foo/value {:bar/value "string"
                       :bar/other "string"
                       :bar/new "string"}}
          (sut/apply-updates
           {:foo/value {:bar/value 1
                        :bar/other 1
-                       :bar/also 1}}
+                       :bar/also 1
+                       }}
           {:foo.update/value {:bar.update/value {:set "string"}
                               :bar.update/other {:set "string"}
+                              :bar.update/new {:set "string"}
                               :bar.update/also :rm
-                              :bar.update/new {:set "string"}}}))))
+                              }}))))
 
 (deftest sharing-updater
   (testing "Add novel"
