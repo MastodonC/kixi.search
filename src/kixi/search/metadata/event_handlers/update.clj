@@ -88,68 +88,10 @@
            (clojure.string/index-of (namespace kw) ".update"))
      (name kw))))
 
-;; The update command DSL for metadata changes only, by example, looks
-;; like this (specifically out of scope are bundle-ids and sharing)
-;;
-;; {:set "baz"
-;;  :conj #{"foo" "bar"}
-;;  :disj #{"bar"}
-;; }
-;;
-;; or simply
-;;
-;; :rm
-;;
-;; In practice however the DSL is limited to a single operator e.g.
-;;
-;; {:conj #{"foo"}}
-;;
-;; Now it looks like an s-expressions with list syntax replaced by map
-;; syntax and the operaters one or more of the three keywords you see here.
-;; The operator is often referred to as either a "command" or
-;; an "action" over the Witan code bases.
-;;
-;; The :conj and :disj  DSL operaters are confusing, they are not:
-;; - conj(oin) or disj(oin) from the clojure world
-;; - nor are they conj(unction) or disj(unction) from the maths world
-;; Rather conj is closet to set union and disj is set difference in mathematics.
-;; Or in the clojure world conj is a concat and disj is a remove with a set function. 
-;;
-;; As, ever things are more complicated.  There are multiple DSL's -
-;; one for each and every meta-data field that allows updates.
-;;
-;; ::md.update/tags {<:conj|:disj> #{"element1" "element2" ...}}
-;; ::md.update/name {:set "string_name"}
-;;
-;; The metadata field has its namespace postfixed by an .update.  In
-;; the pseudo code above we see tags allows either :conj or :disj as
-;; the operator and name allows only the :set operator i.e. different
-;; DSL's.
-;;
-;; Further the DSL argument is defined by the spec of the metadata
-;; field. e.g., for ::md/tags.update the arguments for :conj or :disj
-;; has to conform to the spec of ::md/tags (no .update).  So in these
-;; specific examples the arguments for tags has to be a set and the
-;; arguments for name has to be as string.  This is convenient for
-;; generation of specs but awkward to work with as writing something like
-;;
-;; ::md.update/tags {:conj "new_tag"}
-;;
-;; is very natural but unfortunately disallowed.  Instead you have to write
-;;
-;; ::md.update/tags {:conj #{"new_tag"}}
-;;
-;; The implementation of the parser for the DSL does not know about
-;; the specs of the arguments, rather it has to assume that they are
-;; off a certain form.  This is a problem as it opaquely constrains
-;; the specs allowed. i.e., if you don't know about the parser and how
-;; it works then you can write specs for metadata that will break it.
-;;
-;; The datastore link here provides some but not all of the DSL
-;; definitions for the metadata fields.
-;;
-;; https://github.com/mastodonc/kixi.datastore/blob/master/src/kixi/datastore/metadatastore/command_handler.clj#L255
-;;
+
+;; For a description of the metadata fields DSL's look here
+;; - https://witanblog.wordpress.com/2018/04/11/the-metadata-update-dsl-for-witan/
+
 (def update-dsl-cmds #{:set :conj :disj})
 
 ;; technically the update DSL may have more than one expression
