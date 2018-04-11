@@ -14,8 +14,8 @@
           {:foo.update/value {:set "string"}})))
   (is (= {:foo/value ["string"]}
          (sut/apply-updates
-          {:foo.update/value {:set ["string"]}}))))
           {:foo/value 1}
+          {:foo.update/value {:set ["string"]}}))))
 
 (deftest top-level-rm
   (is (= {}
