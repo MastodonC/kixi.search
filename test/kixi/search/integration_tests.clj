@@ -174,6 +174,20 @@
                    ::mdu/name {:set "Updated Name"}})
       (wait-is= (assoc (::md/file-metadata metadata-payload)
                        ::md/name "Updated Name")
+                (first-item (search-metadata uid "Updated Name")))
+      (send-event {::cs/file-metadata-update-type ::cs/file-metadata-update
+                   ::md/id uid
+                   ::mdu/tags {:conj #{"foo" "bar"}}})
+      (wait-is= (assoc (::md/file-metadata metadata-payload)
+                       ::md/tags #{"foo" "bar"}
+                       ::md/name "Updated Name")
+                (first-item (search-metadata uid "Updated Name")))
+      (send-event {::cs/file-metadata-update-type ::cs/file-metadata-update
+                   ::md/id uid
+                   ::mdu/tags {:disj #{"foo" "bar"}}})
+      (wait-is= (assoc (::md/file-metadata metadata-payload)
+                       ::md/tags #{}
+                       ::md/name "Updated Name")
                 (first-item (search-metadata uid "Updated Name"))))
 
     (let [new-group (uuid)
@@ -181,10 +195,12 @@
           updated-metadata (-> (::md/file-metadata metadata-payload)
                                (assoc ::md/name "Updated Name")
                                (update-in [::md/sharing ::md/meta-read]
-                                          #(into [] (cons new-group %))))
+                                          #(into [] (cons new-group %)))
+                               (assoc ::md/tags #{}))
           updated-metadata2 (-> updated-metadata
                                 (update-in [::md/sharing ::md/meta-read]
-                                           #(into [] (cons new-group2 %))))]
+                                           #(into [] (cons new-group2 %)))
+                                (assoc ::md/tags #{}))]
 
       (testing "New group access grantable"
         (send-event {::cs/file-metadata-update-type ::cs/file-metadata-sharing-updated

@@ -11,7 +11,11 @@
   (is (= {:foo/value "string"}
          (sut/apply-updates
           {:foo/value 1}
-          {:foo.update/value {:set "string"}}))))
+          {:foo.update/value {:set "string"}})))
+  (is (= {:foo/value ["string"]}
+         (sut/apply-updates
+          {:foo.update/value {:set ["string"]}}))))
+          {:foo/value 1}
 
 (deftest top-level-rm
   (is (= {}
@@ -28,28 +32,56 @@
          (sut/apply-updates
           {:foo/value 1}
           {:foo.update/value {:conj 2}})))
+  (is (= {:foo/value [1 2]}
+         (sut/apply-updates
+          {:foo/value 1}
+          {:foo.update/value {:conj [2]}})))
+  (is (= {:foo/value [1 2]}
+         (sut/apply-updates
+          {:foo/value [1]}
+          {:foo.update/value {:conj [2]}})))
   (is (= {:foo/value [2]}
          (sut/apply-updates
           {}
-          {:foo.update/value {:conj 2}}))))
+          {:foo.update/value {:conj 2}})))
+  (is (= {:foo/value [2]}
+         (sut/apply-updates
+          {}
+          {:foo.update/value {:conj [2]}}))))
 
 (deftest top-level-disj
   (is (= {:foo/value []}
          (sut/apply-updates
           {}
           {:foo.update/value {:disj 2}})))
+  (is (= {:foo/value []}
+         (sut/apply-updates
+          {}
+          {:foo.update/value {:disj [2]}})))
   (is (= {:foo/value [1]}
          (sut/apply-updates
           {:foo/value [1 2]}
           {:foo.update/value {:disj 2}})))
   (is (= {:foo/value [1]}
          (sut/apply-updates
+          {:foo/value [1 2]}
+          {:foo.update/value {:disj [2]}})))
+  (is (= {:foo/value [1]}
+         (sut/apply-updates
           {:foo/value 1}
+          {:foo.update/value {:disj 2}})))
+  (is (= {:foo/value [1]}
+         (sut/apply-updates
+          {:foo/value 1}
+          {:foo.update/value {:disj [2]}})))
+  (is (= {:foo/value []}
+         (sut/apply-updates
+          {:foo/value 2}
           {:foo.update/value {:disj 2}})))
   (is (= {:foo/value []}
          (sut/apply-updates
           {:foo/value 2}
-          {:foo.update/value {:disj 2}}))))
+          {:foo.update/value {:disj [2]}}))))
 
 (deftest nested-set
   (is (= {:foo/value {:bar/value "string"}}
