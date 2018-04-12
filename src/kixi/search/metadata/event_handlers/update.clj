@@ -3,8 +3,9 @@
             [clojure.spec.alpha :as s]
             [kixi.comms :as c]
             [kixi.datastore.metadatastore :as md]
+            [kixi.datastore.metadatastore.update :as mdu]
             [kixi.search.elasticsearch.client :as es]
-            [kixi.spec :refer [alias]]
+            [kixi.spec :refer [alias] :as ks]
             [taoensso.timbre :as timbre :refer [info]]))
 
 (alias 'cs 'kixi.datastore.communication-specs)
@@ -88,16 +89,9 @@
            (clojure.string/index-of (namespace kw) ".update"))
      (name kw))))
 
-(def update-cmds #{:set :conj :disj})
 
-(defn- update-cmd?
-  [x]
-  (and (map? x)
-       (= 1 (count (keys x)))
-       (update-cmds (first (keys x)))))
-
-(def first-key (comp first keys))
-(def first-val (comp first vals))
+;; For a description of the metadata fields DSL's look here
+;; - https://witanblog.wordpress.com/2018/04/11/the-metadata-update-dsl-for-witan/
 
 (declare apply-updates)
 
@@ -109,29 +103,48 @@
     :else (vector x)))
 
 (defn apply-update
-  [current kw update-cmd]
-  (if (= :rm update-cmd)
+  [current kw update-dsl]
+  (if (= :rm update-dsl)
     (dissoc current
             (remove-update-ns kw))
+    ;; update-fn is fn that
+    ;; - validates the update DSL for the given kw.update (via spec)
+    ;;   else throw an exception
+    ;; - if it is found the DSL command is not one of #{:set :conj :disj} then assume
+    ;;   it's a nested update and recurse on that key
     (let [update-fn (cond
-                      (update-cmd? update-cmd)
-                      (case (first-key update-cmd)
-                        :set (constantly (first-val update-cmd))
-                        :conj #(distinct (conj (to-seq %) (first-val update-cmd)))
-                        :disj #(remove (set (vals update-cmd)) (to-seq %)))
+                      (s/valid? kw update-dsl)
+                      (fn [existing]
+                        (reduce-kv
+                         (fn [a cmd arg]
+                           (case cmd
+                             :set arg
+                             :conj (distinct (concat (to-seq a) (to-seq arg)))
+                             :disj (remove (set (to-seq arg)) (to-seq a))
+                             (apply-update a cmd arg)))
+                         existing
+                         ;; ensure the dsl is consistently applied by sorting the map 
+                         (apply sorted-map (reduce concat [] update-dsl))))
                       :else
-                      #(apply-updates %
-                                      update-cmd))]
+                      (throw (ex-info "Invalid update DSL" (s/explain-data kw update-dsl))))]
       (update current
               (remove-update-ns kw)
               update-fn))))
 
 (defn apply-updates
+  "Takes the current backend representation of the metadata as the
+  initial value of a reduce applying updates over the metadata
+  fields.  The updates are of the form
+  
+    {ns1.update/kw1 update-dsl1}
+     ns2.update/kw2 update-dsl2
+     ...}
+  "
   [current updates]
   (reduce-kv
-   (fn [c kw update-cmd]
+   (fn [c kw update-dsl]
      (if (update? kw)
-       (apply-update c kw update-cmd)
+       (apply-update c kw update-dsl)
        c))
    current
    updates))
