@@ -7,7 +7,10 @@
                          :port 443}
                :prod  {:protocol "https"
                        :host "vpc-prod-kixi-qqdthzvtvt3nlcggx3bzxlzpdi.eu-west-1.es.amazonaws.com"
-                       :port 443}}
+                       :port 443}
+               :kops-spike {:protocol "http"
+                            :host "elasticsearch"
+                            :port 9200}}
  :logging {:level #profile {:default :info
                             :prod :error} ; e/o #{:trace :debug :info :warn :error :fatal :report}
            ;; Control log filtering by namespaces/patterns. Useful for turning off
@@ -28,6 +31,8 @@
                                   :request-logging? true}
                 :staging {:port 18091
                           :request-logging? true}
+                :kops-spike {:port 18091
+                             :request-logging? true}
                 :prod {:port 18091
                        :request-logging? true}}
 
@@ -75,7 +80,14 @@
                                                             :teardown-dynamodb true
                                                             :metrics-level :NONE}}
                                         ;:idle-time-between-reads-in-millis #or [#env KINESIS_IDLE 200]
-
+                            :kops-spike {:kinesis {:app "kixi.search"
+                                                   :endpoint "kinesis.eu-west-1.amazonaws.com"
+                                                   :region-name "eu-west-1"
+                                                   :dynamodb-endpoint "dynamodb.eu-west-1.amazonaws.com"
+                                                   :initial-lease-table-read-capacity 2
+                                                   :initial-lease-table-write-capacity 2
+                                                   :streams {:event "kops-spike-witan-event"}
+                                                   :metrics-level :NONE}}
                             :prod {:kinesis {:app "kixi.search"
                                              :endpoint "kinesis.eu-west-1.amazonaws.com"
                                              :region-name "eu-west-1"
