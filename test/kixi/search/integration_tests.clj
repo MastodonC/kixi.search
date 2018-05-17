@@ -198,6 +198,12 @@
                        ::md/tags #{"foo" "bar"}
                        ::md/name "Updated Name")
                 (first-item (search-metadata-by-tags uid ["bar"])))
+      (wait-is= (assoc (::md/file-metadata metadata-payload)
+                       ::md/tags #{"foo" "bar"}
+                       ::md/name "Updated Name")
+                (first-item (search-metadata-by-tags uid ["foo" "baz"]))) ;; doesn't include baz
+      (wait-is= nil
+                (first-item (search-metadata-by-tags uid ["baz"])))
       (send-event {::cs/file-metadata-update-type ::cs/file-metadata-update
                    ::md/id uid
                    ::mdu/tags {:disj #{"foo" "bar"}}})
