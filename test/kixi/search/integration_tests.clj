@@ -106,6 +106,18 @@
                         :coerce :always})
           :body))
 
+(defn search-metadata-by-tags
+  [id n]
+  (some-> (client/post (str "http://" search-host ":" search-port "/metadata")
+                       {:body (json/generate-string {:query {::mdq/tags {:contains n}}})
+                        :headers {:user-groups [id]}
+                        :content-type :json
+                        :throw-exceptions false
+                        :as :transit+json
+                        :accept :transit+json
+                        :coerce :always})
+          :body))
+
 (defn create-metadata-payload
   [user-id & [overrides]]
   (merge-with merge
@@ -182,6 +194,10 @@
                        ::md/tags #{"foo" "bar"}
                        ::md/name "Updated Name")
                 (first-item (search-metadata uid "Updated Name")))
+      (wait-is= (assoc (::md/file-metadata metadata-payload)
+                       ::md/tags #{"foo" "bar"}
+                       ::md/name "Updated Name")
+                (first-item (search-metadata-by-tags uid ["bar"])))
       (send-event {::cs/file-metadata-update-type ::cs/file-metadata-update
                    ::md/id uid
                    ::mdu/tags {:disj #{"foo" "bar"}}})

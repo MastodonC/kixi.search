@@ -92,6 +92,7 @@
     ::md/file-type "csv"
     ::md/id user-id
     ::md/name "Test File"
+    ::md/tags #{"foo" "bar" "baz"}
     ::md/provenance {::md/source "upload"
                      ::user/id user-id
                      ::md/created (conformers/time-unparser (t/now))}
@@ -271,6 +272,13 @@
               (search-data {:query {::md/id {:contains [first-id second-id third-id]}}
                             :sort-by [{::md/provenance {::md/created :asc}}]
                             :from 1}))))
+
+(deftest search-by-tags
+  (let [uid (uuid)
+        data (file-event uid)]
+    (insert-data uid data)
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/tags {:contains ["foo"]}}})))))
 
 (deftest apply-update-function
   (testing "Original doesn't exist"

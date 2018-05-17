@@ -87,6 +87,7 @@ are themselves not valid file names.")
    ::ms/sharing {::ms/meta-read #{:contains}
                  ::ms/meta-update #{:contains}
                  ::ms/bundle-add #{:contains}}
+   ::ms/tags #{:contains}
    ::ms/tombstone #{:exists}
    ::ms/provenance {::ms/created #{:gt :gte :lt :lte}}})
 
