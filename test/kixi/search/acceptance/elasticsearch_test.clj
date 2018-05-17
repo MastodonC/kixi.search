@@ -164,6 +164,11 @@
                                                                        ::md/meta-update {:contains [uid]}}}})))
     (wait-is= data
               ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/tags {:contains ["foo"]}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}
+                                                                       ::md/meta-update {:contains [uid]}}}})))
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
                                                          ::md/type {:equals "stored"}
                                                          ::md/sharing {::md/meta-read {:contains [uid]}
                                                                        ::md/meta-update {:contains [uid]}}}})))
@@ -272,13 +277,6 @@
               (search-data {:query {::md/id {:contains [first-id second-id third-id]}}
                             :sort-by [{::md/provenance {::md/created :asc}}]
                             :from 1}))))
-
-(deftest search-by-tags
-  (let [uid (uuid)
-        data (file-event uid)]
-    (insert-data uid data)
-    (wait-is= data
-              ((comp first :items) (search-data {:query {::md/tags {:contains ["foo"]}}})))))
 
 (deftest apply-update-function
   (testing "Original doesn't exist"
