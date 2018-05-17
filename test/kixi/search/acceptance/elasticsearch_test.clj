@@ -92,6 +92,7 @@
     ::md/file-type "csv"
     ::md/id user-id
     ::md/name "Test File"
+    ::md/tags #{"foo" "bar" "baz"}
     ::md/provenance {::md/source "upload"
                      ::user/id user-id
                      ::md/created (conformers/time-unparser (t/now))}
@@ -159,6 +160,11 @@
                                                          ::md/sharing {::md/meta-read {:contains [uid]}}}})))
     (wait-is= data
               ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/sharing {::md/meta-read {:contains [uid]}
+                                                                       ::md/meta-update {:contains [uid]}}}})))
+    (wait-is= data
+              ((comp first :items) (search-data {:query {::md/name {:match "Test File"}
+                                                         ::md/tags {:contains ["foo"]}
                                                          ::md/sharing {::md/meta-read {:contains [uid]}
                                                                        ::md/meta-update {:contains [uid]}}}})))
     (wait-is= data

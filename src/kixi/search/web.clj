@@ -99,6 +99,16 @@
          (namespaced-keyword element)))
      unparsed)))
 
+(defn coerce-special-fields
+  [unparsed]
+  (let [fields {:kixi.datastore.metadatastore.query/tags [:contains set]}]
+    (clojure.walk/postwalk #(if (and (vector? %)
+                                     (get fields (first %))
+                                     (map? (second %)))
+                              (let [[qt func] ((first %) fields)]
+                                (update-in % [1 qt] func))
+                              %) unparsed)))
+
 (defn update-present
   [m k f]
   (if (k m)
@@ -111,12 +121,12 @@
     (let [query-raw (-> (json/parse-string (body-string request)
                                            namespaced-keyword)
                         (update-present :fields parse-nested-vectors)
-                        (update-present :sort-by parse-sort-by))
-          conformed-query (spec/conform ::model/query-map
-                                        query-raw)]
+                        (update-present :sort-by parse-sort-by)
+                        (update-present :query coerce-special-fields))
+          conformed-query (spec/conform ::model/query-map query-raw)]
       (cond (= ::spec/invalid conformed-query)
             {:status 400
-             :body (spec/explain-data ::model/query-map query-raw)}
+             :body {:error (with-out-str (spec/explain ::model/query-map query-raw))}}
 
             (empty? (request->user-groups request))
             {:status 400

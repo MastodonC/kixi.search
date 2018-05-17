@@ -59,3 +59,8 @@
   (t/testing "Nested nested fields"
     (t/is (= [:a {:a :b} {:c {:d {:e :f}}}]
              (sut/parse-sort-by ["a" {:a "b"} {:c {:d {:e "f"}}}])))))
+
+(t/deftest coerce-special-fields-test
+  (t/testing "tags"
+    (t/is (= {:kixi.datastore.metadatastore.query/tags {:contains #{"foo"}}}
+             (sut/coerce-special-fields {:kixi.datastore.metadatastore.query/tags {:contains ["foo"]}} )))))
