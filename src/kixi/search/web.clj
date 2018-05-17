@@ -106,7 +106,6 @@
                                      (get fields (first %))
                                      (map? (second %)))
                               (let [[qt func] ((first %) fields)]
-                                (println "###############" % qt func)
                                 (update-in % [1 qt] func))
                               %) unparsed)))
 
