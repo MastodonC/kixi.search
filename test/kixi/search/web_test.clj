@@ -62,5 +62,5 @@
 
 (t/deftest coerce-special-fields-test
   (t/testing "tags"
-    (t/is (= {:kixi.datastore.metadatastore.query/tags #{"foo"}}
-             (sut/coerce-special-fields {:kixi.datastore.metadatastore.query/tags ["foo"]} )))))
+    (t/is (= {:kixi.datastore.metadatastore.query/tags {:contains #{"foo"}}}
+             (sut/coerce-special-fields {:kixi.datastore.metadatastore.query/tags {:contains ["foo"]}} )))))

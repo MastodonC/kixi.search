@@ -103,8 +103,10 @@
   [unparsed]
   (let [fields {:kixi.datastore.metadatastore.query/tags [:contains set]}]
     (clojure.walk/postwalk #(if (and (vector? %)
-                                     (get fields (first %)))
+                                     (get fields (first %))
+                                     (map? (second %)))
                               (let [[qt func] ((first %) fields)]
+                                (println "###############" % qt func)
                                 (update-in % [1 qt] func))
                               %) unparsed)))
 
