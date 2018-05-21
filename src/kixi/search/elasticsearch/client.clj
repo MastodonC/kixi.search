@@ -105,6 +105,7 @@
   (client/put (str es-url "/" index-name "/" doc-type "/" id)
               {:body (json/generate-string (all-keys->es-format document))
                :as :json
+               :insecure? true
                :headers {:content-type "application/json"}}))
 
 (def collapse-keys ["terms"])
@@ -244,7 +245,8 @@
 (defn get-by-id-raw-
   [index-name doc-type es-url id exceptions]
   (client/get (str es-url "/" index-name "/" doc-type "/" id)
-              {:throw-exceptions exceptions}))
+              {:throw-exceptions exceptions
+               :insecure? true}))
 
 (defn ensure-set
   [x]
@@ -283,6 +285,7 @@
   (client/get
    (str es-url "/" index-name "/" doc-type "/_search")
    {:body (json/generate-string query)
+    :insecure? true
     :headers {:content-type "application/json"}}))
 
 (spec/fdef search-data
@@ -312,7 +315,8 @@
 (defn index-exists?
   [es-url index-name]
   (-> (str es-url "/" index-name)
-      (client/head {:throw-exceptions false})
+      (client/head {:throw-exceptions false
+                    :insecure? true})
       :status
       (= 200)))
 
@@ -320,6 +324,7 @@
   [es-url index-name definition]
   (client/put (str es-url "/" index-name)
               {:body (json/generate-string definition)
+               :insecure? true
                :headers {:content-type "application/json"}}))
 
 (defn create-index
@@ -343,6 +348,7 @@
   [es-url index-name doc-type id previous-version updated]
   (client/put (str es-url "/" index-name "/" doc-type "/" id)
               {:body (json/generate-string (all-keys->es-format updated))
+               :insecure? true
                :query-params {:version previous-version}
                :headers {:content-type "application/json"}}))
 
