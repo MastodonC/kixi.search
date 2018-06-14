@@ -2,13 +2,14 @@
  :es #profile {:default {:protocol "http"
                        :host #or [#env ELASTICSEARCH "localhost"]
                        :port 9200}
-               :staging {:protocol "https"
-                         :host "vpc-staging-kixi-s2e6qmw2ijwt6fuwde6gmg7x64.eu-central-1.es.amazonaws.com"
-                         :port 443}
+               :staging {:protocol "http"
+                         :host "35.156.213.214"
+                         :port 8080}
                :prod  {:protocol "https"
                        :host "vpc-prod-kixi-qqdthzvtvt3nlcggx3bzxlzpdi.eu-west-1.es.amazonaws.com"
                        :port 443}}
  :logging {:level #profile {:default :info
+                            :staging :debug
                             :prod :error} ; e/o #{:trace :debug :info :warn :error :fatal :report}
            ;; Control log filtering by namespaces/patterns. Useful for turning off
            ;; logging in noisy libraries, etc.:
